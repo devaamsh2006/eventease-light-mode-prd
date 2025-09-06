@@ -1,46 +1,58 @@
+"use client";
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Metadata } from 'next'
 import Dashboard from '@/components/Dashboard'
-
-export const metadata: Metadata = {
-  title: 'Organizer Dashboard | EventEase',
-  description: 'Comprehensive event management dashboard for organizers. Monitor event analytics, manage registrations, track attendance, and access powerful tools to streamline your event operations.',
-  keywords: [
-    'event management dashboard',
-    'event organizer tools',
-    'event analytics',
-    'registration management',
-    'attendance tracking',
-    'event insights',
-    'organizer dashboard',
-    'event administration',
-    'event planning tools',
-    'EventEase dashboard'
-  ],
-  openGraph: {
-    title: 'Organizer Dashboard | EventEase',
-    description: 'Comprehensive event management dashboard for organizers. Monitor event analytics, manage registrations, track attendance, and access powerful tools to streamline your event operations.',
-    type: 'website',
-    siteName: 'EventEase',
-    locale: 'en_US',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Organizer Dashboard | EventEase',
-    description: 'Comprehensive event management dashboard for organizers. Monitor event analytics, manage registrations, track attendance, and access powerful tools to streamline your event operations.',
-  },
-  robots: {
-    index: false, // Dashboard should not be indexed by search engines
-    follow: false,
-  },
-  other: {
-    'application-name': 'EventEase',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'EventEase Dashboard',
-  }
-}
+import { useAuth } from '@/components/AuthProvider';
 
 export default function DashboardPage() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-muted-foreground">Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return null; // Will redirect via useEffect
+  }
+
+  // Show access denied if user is not an organizer
+  if (user.role !== 'organizer') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You need organizer permissions to access this dashboard.
+          </p>
+          <button 
+            onClick={() => router.push('/')}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <main 

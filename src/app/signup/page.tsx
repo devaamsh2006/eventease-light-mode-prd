@@ -1,128 +1,97 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, User, UserCheck, Mail, Lock, ArrowLeft, Calendar } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, UserCheck, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { authClient } from "@/lib/auth-client";
 
-interface FormData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: string;
-  acceptTerms: boolean;
-}
-
-interface FormErrors {
-  name?: string;
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-  role?: string;
-  acceptTerms?: string;
-}
-
-export default function SignUpPage() {
+export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: "user",
-    acceptTerms: false,
+    role: "user" as "user" | "organizer",
   });
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-  const validateEmail = (email: string): boolean => {
+  useEffect(() => {
+    document.title = "Sign Up - EventEase";
+  }, []);
+
+  const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const validatePassword = (password: string): boolean => {
-    return password.length >= 8 && /\d/.test(password) && /[a-zA-Z]/.test(password);
-  };
-
-  const getPasswordStrength = (password: string): string => {
-    if (password.length === 0) return "";
-    if (password.length < 6) return "Weak";
-    if (password.length < 8 || !(/\d/.test(password) && /[a-zA-Z]/.test(password))) return "Fair";
-    if (password.length >= 8 && /\d/.test(password) && /[a-zA-Z]/.test(password)) return "Strong";
-    return "Strong";
-  };
-
-  const getPasswordStrengthColor = (strength: string): string => {
-    switch (strength) {
-      case "Weak": return "text-red-500";
-      case "Fair": return "text-yellow-500";
-      case "Strong": return "text-green-500";
-      default: return "text-gray-400";
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear errors when user starts typing
+    if (field in errors) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+  const validateForm = () => {
+    const newErrors = { name: "", email: "", password: "", confirmPassword: "" };
+    let isValid = true;
 
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
+      isValid = false;
     } else if (formData.name.trim().length < 2) {
       newErrors.name = "Name must be at least 2 characters";
+      isValid = false;
     }
 
-    if (!formData.email.trim()) {
+    if (!formData.email) {
       newErrors.email = "Email is required";
+      isValid = false;
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
+      isValid = false;
     }
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 8 characters and include both letters and numbers";
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+      isValid = false;
     }
 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
+      isValid = false;
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    if (!formData.role) {
-      newErrors.role = "Please select your role";
-    }
-
-    if (!formData.acceptTerms) {
-      newErrors.acceptTerms = "You must accept the terms and conditions";
+      isValid = false;
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -134,54 +103,88 @@ export default function SignUpPage() {
         email: formData.email,
         name: formData.name,
         password: formData.password,
+        // Send role as additional data
+        callbackURL: formData.role === 'organizer' ? "/dashboard" : "/",
       });
 
       if (error?.code) {
         const errorMap: Record<string, string> = {
-          USER_ALREADY_EXISTS: "An account with this email already exists. Please use a different email or try logging in.",
+          USER_ALREADY_EXISTS: "An account with this email already exists",
           INVALID_EMAIL: "Please enter a valid email address",
-          WEAK_PASSWORD: "Password is too weak. Please choose a stronger password.",
+          WEAK_PASSWORD: "Password is too weak. Please choose a stronger password",
         };
-        
         toast.error(errorMap[error.code] || "Registration failed. Please try again.");
         return;
       }
 
-      toast.success("Account created successfully! Please check your email to verify your account.");
+      // Update user role after successful registration
+      if (data?.user && formData.role === 'organizer') {
+        // Since better-auth doesn't directly support custom fields in registration,
+        // we'll need to update the role separately if needed
+        localStorage.setItem("user_role", formData.role);
+      }
+
+      toast.success("Account created successfully! You can now sign in.");
       router.push("/login?registered=true");
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+      console.error("Registration error:", error);
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const passwordStrength = getPasswordStrength(formData.password);
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center mb-8">
-          <Link 
-            href="/" 
-            className="flex items-center space-x-2 text-2xl font-display font-bold text-foreground hover:text-primary transition-colors"
-          >
-            <Calendar className="h-8 w-8" />
-            <span>EventEase</span>
-          </Link>
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-display font-bold text-foreground">Create your account</h1>
+          <p className="mt-2 text-muted-foreground">
+            Join EventEase to start organizing or discovering amazing events
+          </p>
         </div>
 
-        <Card className="border-border shadow-lg">
-          <CardHeader className="space-y-2 text-center">
-            <CardTitle className="text-2xl font-display font-bold">Create Account</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Join EventEase to start managing or attending events
+        <Card className="border border-border shadow-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-display">Sign up</CardTitle>
+            <CardDescription>
+              Choose your account type and enter your information
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Role Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Account Type</Label>
+                <RadioGroup
+                  value={formData.role}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as "user" | "organizer" }))}
+                  className="grid grid-cols-2 gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="user" id="user" />
+                    <Label htmlFor="user" className="flex items-center gap-2 cursor-pointer">
+                      <User className="h-4 w-4" />
+                      <span>Attendee</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="organizer" id="organizer" />
+                    <Label htmlFor="organizer" className="flex items-center gap-2 cursor-pointer">
+                      <UserCheck className="h-4 w-4" />
+                      <span>Organizer</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === 'organizer' 
+                    ? "Organizers can create and manage events through the dashboard" 
+                    : "Attendees can discover and register for events"
+                  }
+                </p>
+              </div>
 
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-6">
-              {/* Full Name */}
+              {/* Name Field */}
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium">
                   Full Name
@@ -192,21 +195,19 @@ export default function SignUpPage() {
                     id="name"
                     type="text"
                     placeholder="Enter your full name"
-                    className={`pl-10 ${errors.name ? 'border-destructive' : ''}`}
                     value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    className={`pl-10 ${errors.name ? "border-destructive" : ""}`}
+                    autoComplete="name"
                     disabled={isLoading}
-                    aria-describedby={errors.name ? "name-error" : undefined}
                   />
                 </div>
                 {errors.name && (
-                  <p id="name-error" className="text-sm text-destructive" role="alert">
-                    {errors.name}
-                  </p>
+                  <p className="text-sm text-destructive">{errors.name}</p>
                 )}
               </div>
 
-              {/* Email */}
+              {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email Address
@@ -217,21 +218,19 @@ export default function SignUpPage() {
                     id="email"
                     type="email"
                     placeholder="Enter your email"
-                    className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                    autoComplete="email"
                     disabled={isLoading}
-                    aria-describedby={errors.email ? "email-error" : undefined}
                   />
                 </div>
                 {errors.email && (
-                  <p id="email-error" className="text-sm text-destructive" role="alert">
-                    {errors.email}
-                  </p>
+                  <p className="text-sm text-destructive">{errors.email}</p>
                 )}
               </div>
 
-              {/* Password */}
+              {/* Password Field */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium">
                   Password
@@ -242,35 +241,31 @@ export default function SignUpPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
-                    className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
                     value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    disabled={isLoading}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
                     autoComplete="off"
-                    aria-describedby={errors.password ? "password-error" : "password-strength"}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    disabled={isLoading}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
-                {formData.password && (
-                  <p id="password-strength" className={`text-sm ${getPasswordStrengthColor(passwordStrength)}`}>
-                    Password strength: {passwordStrength}
-                  </p>
-                )}
                 {errors.password && (
-                  <p id="password-error" className="text-sm text-destructive" role="alert">
-                    {errors.password}
-                  </p>
+                  <p className="text-sm text-destructive">{errors.password}</p>
                 )}
               </div>
 
-              {/* Confirm Password */}
+              {/* Confirm Password Field */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-sm font-medium">
                   Confirm Password
@@ -281,132 +276,75 @@ export default function SignUpPage() {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
-                    className={`pl-10 pr-10 ${errors.confirmPassword ? 'border-destructive' : ''}`}
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    disabled={isLoading}
+                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    className={`pl-10 pr-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
                     autoComplete="off"
-                    aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    disabled={isLoading}
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p id="confirm-password-error" className="text-sm text-destructive" role="alert">
-                    {errors.confirmPassword}
-                  </p>
+                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                 )}
               </div>
 
-              {/* Role Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Account Type</Label>
-                <RadioGroup
-                  value={formData.role}
-                  onValueChange={(value) => handleInputChange('role', value)}
-                  className="space-y-3"
-                  aria-describedby={errors.role ? "role-error" : undefined}
-                >
-                  <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
-                    <RadioGroupItem value="user" id="user" />
-                    <div className="flex items-center space-x-2 flex-1">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <Label htmlFor="user" className="font-medium cursor-pointer">
-                          Event Attendee
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Browse and register for events
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
-                    <RadioGroupItem value="admin" id="admin" />
-                    <div className="flex items-center space-x-2 flex-1">
-                      <UserCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <Label htmlFor="admin" className="font-medium cursor-pointer">
-                          Event Organizer
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Create and manage events
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </RadioGroup>
-                {errors.role && (
-                  <p id="role-error" className="text-sm text-destructive" role="alert">
-                    {errors.role}
-                  </p>
-                )}
-              </div>
-
-              {/* Terms and Conditions */}
-              <div className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="terms"
-                    checked={formData.acceptTerms}
-                    onCheckedChange={(checked) => handleInputChange('acceptTerms', checked as boolean)}
-                    disabled={isLoading}
-                    aria-describedby={errors.acceptTerms ? "terms-error" : undefined}
-                  />
-                  <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
-                    I agree to the{" "}
-                    <Link href="/terms" className="text-primary hover:underline">
-                      Terms and Conditions
-                    </Link>{" "}
-                    and{" "}
-                    <Link href="/privacy" className="text-primary hover:underline">
-                      Privacy Policy
-                    </Link>
-                  </Label>
-                </div>
-                {errors.acceptTerms && (
-                  <p id="terms-error" className="text-sm text-destructive" role="alert">
-                    {errors.acceptTerms}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-
-            <CardFooter className="space-y-4">
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 disabled={isLoading}
-                size="lg"
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                    <span>Creating account...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <span>Create Account</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                )}
               </Button>
+            </form>
 
-              <div className="text-center space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Already have an account?{" "}
-                  <Link href="/login" className="text-primary hover:underline font-medium">
-                    Sign in here
-                  </Link>
-                </p>
-
-                <Link
-                  href="/"
-                  className="inline-flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            <div className="mt-6 text-center text-sm">
+              <p className="text-muted-foreground">
+                Already have an account?{" "}
+                <Link 
+                  href="/login" 
+                  className="text-primary hover:text-primary/80 font-medium underline underline-offset-4 transition-colors"
                 >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Back to Home</span>
+                  Sign in here
                 </Link>
-              </div>
-            </CardFooter>
-          </form>
+              </p>
+            </div>
+          </CardContent>
         </Card>
+
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">
+            By creating an account, you agree to our{" "}
+            <Link href="/terms" className="underline underline-offset-4">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline underline-offset-4">
+              Privacy Policy
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -15,18 +15,16 @@ import { Menu, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface NavBarProps {
-  userRole?: 'user' | 'organizer' | null;
-  isAuthenticated?: boolean;
-  userName?: string;
-  onLogout?: () => void;
+  user?: any;
+  isLoading?: boolean;
+  onSignOut?: () => void;
   className?: string;
 }
 
 export default function NavBar({ 
-  userRole = null, 
-  isAuthenticated = false, 
-  userName,
-  onLogout,
+  user = null, 
+  isLoading = false, 
+  onSignOut,
   className = ""
 }: NavBarProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -57,11 +55,14 @@ export default function NavBar({
   };
 
   const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-      toast.success('Successfully logged out');
+    if (onSignOut) {
+      onSignOut();
     }
   };
+
+  const isAuthenticated = !!user;
+  const userRole = user?.role || null;
+  const userName = user?.name || user?.email || 'User';
 
   const navigationLinks = [
     { href: '/', label: 'Home' },
@@ -112,6 +113,14 @@ export default function NavBar({
   );
 
   const AuthControls = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      );
+    }
+
     if (isAuthenticated) {
       return (
         <DropdownMenu>
@@ -119,10 +128,10 @@ export default function NavBar({
             <Button variant="ghost" className="h-9 px-3">
               <div className="flex items-center gap-2">
                 <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                  {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                  {userName.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium hidden sm:inline">
-                  {userName || 'User'}
+                  {userName}
                 </span>
               </div>
             </Button>
