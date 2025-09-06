@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { authClient, useSession } from '@/lib/auth-client';
 import { toast } from 'sonner';
 import NavBar from '@/components/NavBar';
+import AIAssistantPopup from '@/components/AIAssistantPopup';
 
 interface AuthContextType {
   user: any;
@@ -27,16 +28,9 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export default function AuthProvider({ children }: AuthProviderProps) {
   const { data: session, isPending, refetch } = useSession();
   const router = useRouter();
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    if (!isPending) {
-      setIsInitialized(true);
-    }
-  }, [isPending]);
 
   const handleSignOut = async () => {
     try {
@@ -44,7 +38,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error?.code) {
         toast.error('Sign out failed. Please try again.');
       } else {
-        localStorage.removeItem("bearer_token");
         refetch(); // Update session state
         toast.success('Signed out successfully');
         router.push('/');
@@ -56,21 +49,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const contextValue: AuthContextType = {
     user: session?.user || null,
-    isLoading: isPending || !isInitialized,
+    isLoading: isPending,
     signOut: handleSignOut,
     refetchSession: refetch,
   };
-
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-muted-foreground">Loading...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -83,7 +65,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         <main className="pt-16">
           {children}
         </main>
+        <AIAssistantPopup />
       </div>
     </AuthContext.Provider>
   );
-};
+}
