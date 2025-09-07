@@ -1,108 +1,243 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+"use client";
 
-export const metadata: Metadata = {
-  title: 'EventEase - Smart Event Management Portal',
-  description: 'Streamline your event organization with EventEase. Discover events, register easily, and manage your events with our comprehensive platform featuring AI assistance.',
-  keywords: ['event management', 'event registration', 'event planning', 'AI assistant', 'EventEase'],
-  openGraph: {
-    title: 'EventEase - Smart Event Management Portal',
-    description: 'Streamline your event organization with EventEase. Discover events, register easily, and manage your events with our comprehensive platform featuring AI assistance.',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'EventEase - Smart Event Management Portal',
-    description: 'Streamline your event organization with EventEase. Discover events, register easily, and manage your events with our comprehensive platform featuring AI assistance.',
-  },
-}
+import React from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/components/AuthProvider';
+import { ArrowRight, Users, Shield, Zap, Globe, ChevronRight, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-export default function HomePage() {
+export default function Home() {
+  const { user, isLoading } = useAuth();
+
+  const features = [
+    {
+      icon: <Shield className="h-8 w-8 text-primary" />,
+      title: "Secure Authentication",
+      description: "Enterprise-grade security with role-based access control and session management."
+    },
+    {
+      icon: <Users className="h-8 w-8 text-primary" />,
+      title: "User Management", 
+      description: "Complete user lifecycle management with registration, profiles, and permissions."
+    },
+    {
+      icon: <Zap className="h-8 w-8 text-primary" />,
+      title: "Fast Performance",
+      description: "Built with Next.js 15 and modern technologies for lightning-fast load times."
+    },
+    {
+      icon: <Globe className="h-8 w-8 text-primary" />,
+      title: "Modern UI/UX",
+      description: "Beautiful, responsive design with dark mode support and accessibility features."
+    }
+  ];
+
+  const stats = [
+    { label: "Active Users", value: "10K+" },
+    { label: "Uptime", value: "99.9%" },
+    { label: "Response Time", value: "<100ms" },
+    { label: "Countries", value: "50+" }
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-br from-background to-muted/20">
-        <div className="container max-w-6xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-display font-bold mb-6">
-            Seamless Event Management
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Discover, register, and manage events with our comprehensive platform. 
-            From finding the perfect workshop to organizing large conferences.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/events">
-              <Button size="lg" className="px-8 py-3">
-                Browse Events
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="outline" size="lg" className="px-8 py-3">
-                Register Now
-              </Button>
-            </Link>
+      <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-accent/10">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+          <div className="text-center space-y-8">
+            <div className="space-y-4">
+              <Badge variant="outline" className="text-sm font-medium">
+                🚀 Welcome to EventHub
+              </Badge>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+                Your Complete
+                <span className="text-primary block">Event Management</span>
+                Platform
+              </h1>
+              <p className="max-w-2xl mx-auto text-lg sm:text-xl text-muted-foreground leading-relaxed">
+                Streamline your event planning with our powerful, secure, and user-friendly platform. 
+                Built for organizers, loved by attendees.
+              </p>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {!isLoading && !user ? (
+                <>
+                  <Link href="/signup">
+                    <Button size="lg" className="w-full sm:w-auto group">
+                      Get Started Free
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                      Sign In
+                    </Button>
+                  </Link>
+                </>
+              ) : !isLoading && user ? (
+                <div className="text-center space-y-4">
+                  <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span>Welcome back, {user.name}!</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Link href="/dashboard">
+                      <Button size="lg" className="w-full sm:w-auto group">
+                        Go to Dashboard
+                        <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
+                    {user.role === 'organizer' && (
+                      <Link href="/admin">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                          Admin Panel
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-16 bg-background">
-        <div className="container max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-display font-bold text-center mb-12">
-            Everything You Need
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+      {/* Stats Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Event Discovery</h3>
-              <p className="text-muted-foreground text-sm">
-                Find events that match your interests with powerful search and filtering
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Easy Registration</h3>
-              <p className="text-muted-foreground text-sm">
-                Register for events quickly with our streamlined registration process
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364-.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">AI Assistant</h3>
-              <p className="text-muted-foreground text-sm">
-                Get instant answers and generate event content with AI assistance
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Organizer Dashboard</h3>
-              <p className="text-muted-foreground text-sm">
-                Manage your events, track registrations, and analyze performance
-              </p>
-            </div>
+            ))}
           </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+              Why Choose EventHub?
+            </h2>
+            <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
+              Built with modern technologies and best practices to deliver exceptional performance and user experience.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="relative group hover:shadow-lg transition-all duration-300 border-border/50">
+                <CardHeader className="space-y-4">
+                  <div className="p-2 w-fit rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-24 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+              What Our Users Say
+            </h2>
+            <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
+              Join thousands of satisfied event organizers and attendees.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Sarah Johnson",
+                role: "Event Organizer",
+                content: "EventHub has transformed how we manage our corporate events. The interface is intuitive and the features are exactly what we need.",
+                rating: 5
+              },
+              {
+                name: "Michael Chen",
+                role: "Marketing Director",
+                content: "The authentication system is rock-solid and the user management features have saved us countless hours. Highly recommended!",
+                rating: 5
+              },
+              {
+                name: "Emily Rodriguez",
+                role: "Conference Coordinator",
+                content: "From registration to event day management, EventHub covers everything. The AI assistant is incredibly helpful too!",
+                rating: 5
+              }
+            ].map((testimonial, index) => (
+              <Card key={index} className="hover:shadow-lg transition-all duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-muted-foreground mb-4 italic">"{testimonial.content}"</p>
+                  <div className="border-t pt-4">
+                    <div className="font-semibold text-foreground">{testimonial.name}</div>
+                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 bg-primary text-primary-foreground">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 space-y-8">
+          <h2 className="text-3xl sm:text-4xl font-bold">
+            Ready to Get Started?
+          </h2>
+          <p className="text-lg opacity-90 max-w-2xl mx-auto">
+            Join thousands of event organizers who trust EventHub for their event management needs. 
+            Start your free account today and experience the difference.
+          </p>
+          
+          {!isLoading && !user && (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/signup">
+                <Button size="lg" variant="secondary" className="w-full sm:w-auto group">
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                  Sign In Now
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
     </div>
-  )
+  );
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import { authClient, useSession } from '@/lib/auth-client';
 import { toast } from 'sonner';
-import NavBar from '@/components/NavBar';
-import AIAssistantPopup from '@/components/AIAssistantPopup';
+import { NavBar } from '@/components/NavBar';
+import { AIAssistant } from '@/components/AIAssistantPopup';
 
 interface AuthContextType {
   user: any;
@@ -65,7 +65,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         <main className="pt-16">
           {children}
         </main>
-        <AIAssistantPopup />
+        <AIAssistant />
       </div>
     </AuthContext.Provider>
   );

@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
-import Script from "next/script";
 import AuthProvider from "@/components/AuthProvider";
+import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "EventEase - Smart Event Management Portal",
-  description: "Streamline your event organization with EventEase",
+  title: "My App",
+  description: "A modern web application with authentication",
 };
 
 export default function RootLayout({
@@ -19,6 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <ErrorReporter />
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+        <Toaster />
         <Script
           src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
           strategy="afterInteractive"
@@ -29,9 +34,6 @@ export default function RootLayout({
           data-debug="true"
           data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
         />
-        <AuthProvider>
-          {children}
-        </AuthProvider>
         <VisualEditsMessenger />
       </body>
     </html>
