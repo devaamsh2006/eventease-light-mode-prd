@@ -1,0 +1,1 @@
+// remove this file - middleware should be in root

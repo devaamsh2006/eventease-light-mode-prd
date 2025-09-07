@@ -14,22 +14,74 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
     minPasswordLength: 8,
+    maxPasswordLength: 128,
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
+    },
   },
+  socialProviders: {},
   user: {
     additionalFields: {
       role: {
         type: "string",
         required: false,
         defaultValue: "user",
+        validator: (value: string) => {
+          if (!["user", "organizer"].includes(value)) {
+            throw new Error("Invalid role. Must be 'user' or 'organizer'");
+          }
+          return value;
+        },
+      },
+    },
+    modelName: "user",
+  },
+  account: {
+    modelName: "account",
+  },
+  session: {
+    modelName: "session",
+    cookieName: "better-auth.session_token",
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5,
+    },
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+  },
+  cookies: {
+    sessionToken: {
+      name: "better-auth.session_token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },
-  trustedOrigins: ["http://localhost:3000"],
-  baseURL: "http://localhost:3000",
+  rateLimit: {
+    window: 60,
+    max: 100,
+  },
+  advanced: {
+    generateId: false,
+    crossSubDomainCookies: {
+      enabled: false,
+    },
+  },
+  trustedOrigins: process.env.NODE_ENV === "production" 
+    ? [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"]
+    : ["http://localhost:3000"],
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  logger: {
+    level: process.env.NODE_ENV === "production" ? "error" : "info",
+  },
 });
 
 export type User = typeof auth.$Infer.User & {
@@ -37,6 +89,21 @@ export type User = typeof auth.$Infer.User & {
 };
 
 export type Session = typeof auth.$Infer.Session;
+
+export const { 
+  signIn, 
+  signUp, 
+  signOut, 
+  getSession, 
+  listSessions,
+  revokeSession,
+  revokeSessions,
+  changePassword,
+  resetPassword,
+  sendResetPassword,
+  verifyEmail,
+  sendVerificationEmail,
+} = auth;
 
 // Helper function to get current user from request
 export async function getCurrentUser(request: Request): Promise<User | null> {
@@ -108,4 +175,5 @@ export async function requireOrganizer(
   return requireRole(request, "organizer");
 }
 
+// Default export for the auth instance
 export default auth;

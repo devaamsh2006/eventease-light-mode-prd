@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +26,7 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    document.title = "Sign In - EventEase";
+    document.title = "Sign In - EventHub";
   }, []);
 
   const validateEmail = (email: string) => {
@@ -78,22 +77,40 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await authClient.signIn.email({
-        email: formData.email,
-        password: formData.password,
-        rememberMe: formData.rememberMe,
-        callbackURL: "/dashboard"
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
-      if (error?.code) {
-        toast.error("Invalid email or password. Please make sure you have already registered an account and try again.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.code === "INVALID_CREDENTIALS") {
+          toast.error("Invalid email or password. Please check your credentials and try again.");
+        } else {
+          toast.error(data.error || "Login failed. Please try again.");
+        }
         return;
       }
 
       toast.success("Welcome back! Redirecting to your dashboard...");
-      router.push("/dashboard");
+      
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh(); // Refresh to update authentication state
+      }, 1000);
+
     } catch (error) {
-      toast.error("An unexpected error occurred. Please try again.");
+      console.error("Login error:", error);
+      toast.error("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -103,15 +120,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-display font-bold text-foreground">Welcome back</h1>
+          <h1 className="text-3xl font-bold text-foreground">Welcome back</h1>
           <p className="mt-2 text-muted-foreground">
-            Sign in to your EventEase account to continue
+            Sign in to your EventHub account to continue
           </p>
         </div>
 
         <Card className="border border-border shadow-sm">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-display">Sign in</CardTitle>
+            <CardTitle className="text-2xl">Sign in</CardTitle>
             <CardDescription>
               Enter your credentials to access your account
             </CardDescription>
@@ -153,7 +170,7 @@ export default function LoginPage() {
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
-                    autoComplete="off"
+                    autoComplete="current-password"
                     disabled={isLoading}
                   />
                   <button
