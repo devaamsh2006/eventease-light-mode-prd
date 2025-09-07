@@ -1,139 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { toast } from "sonner";
-import { Eye, EyeOff, User, Users, Loader2 } from "lucide-react";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles, UserCheck, Shield } from 'lucide-react';
 
-interface FormData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: "user" | "organizer";
-}
-
-interface FormErrors {
-  name?: string;
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-  role?: string;
-}
-
-export const SignupPage = () => {
-  const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "user"
+export default function SignupPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'user' as 'user' | 'organizer'
   });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const validateField = (name: keyof FormData, value: string): string => {
-    switch (name) {
-      case "name":
-        if (!value.trim()) return "Name is required";
-        if (value.trim().length < 2) return "Name must be at least 2 characters";
-        return "";
-
-      case "email":
-        if (!value.trim()) return "Email is required";
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) return "Please enter a valid email address";
-        return "";
-
-      case "password":
-        if (!value) return "Password is required";
-        if (value.length < 8) return "Password must be at least 8 characters";
-        if (!/(?=.*[a-z])/.test(value)) return "Password must contain at least one lowercase letter";
-        if (!/(?=.*[A-Z])/.test(value)) return "Password must contain at least one uppercase letter";
-        if (!/(?=.*\d)/.test(value)) return "Password must contain at least one number";
-        return "";
-
-      case "confirmPassword":
-        if (!value) return "Please confirm your password";
-        if (value !== formData.password) return "Passwords do not match";
-        return "";
-
-      case "role":
-        if (!["user", "organizer"].includes(value as "user" | "organizer")) {
-          return "Please select a valid role";
-        }
-        return "";
-
-      default:
-        return "";
-    }
-  };
-
-  const handleInputChange = (name: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
-
-    // Real-time validation
-    const error = validateField(name, value);
-    if (error) {
-      setErrors(prev => ({ ...prev, [name]: error }));
-    }
-
-    // Revalidate confirm password if password changes
-    if (name === "password" && formData.confirmPassword) {
-      const confirmError = validateField("confirmPassword", formData.confirmPassword);
-      setErrors(prev => ({ ...prev, confirmPassword: confirmError }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-    let isValid = true;
-
-    (Object.keys(formData) as Array<keyof FormData>).forEach(key => {
-      const error = validateField(key, formData[key]);
-      if (error) {
-        newErrors[key] = error;
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      toast.error("Please correct the errors in the form");
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.toLowerCase().trim(),
+          name: formData.name,
+          email: formData.email,
           password: formData.password,
           role: formData.role
         }),
@@ -142,231 +56,236 @@ export const SignupPage = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.code === "EMAIL_EXISTS") {
-          toast.error("Email already registered. Please use a different email or sign in instead.");
-          setErrors({ email: "This email is already registered" });
-        } else {
-          toast.error(data.error || "Registration failed. Please try again.");
-        }
-        return;
+        throw new Error(data.error || 'Registration failed');
       }
 
-      toast.success("Account created successfully! Redirecting to login...");
-      
-      // Redirect to login page after short delay
-      setTimeout(() => {
-        router.push("/login?registered=true");
-      }, 1500);
-
-    } catch (error) {
-      console.error("Registration error:", error);
-      toast.error("Network error. Please check your connection and try again.");
+      toast.success('Account created successfully! Please sign in.');
+      router.push('/login?registered=true');
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      if (error.message.includes('already exists')) {
+        toast.error('Email already registered. Please use a different email or sign in.');
+      } else {
+        toast.error(error.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleRoleChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      role: value as 'user' | 'organizer'
+    }));
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
-      <Card className="w-full max-w-md shadow-lg border-border">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-          <CardDescription>
-            Join us to get started with your journey
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-primary/5 to-teal-500/10" />
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }} />
+        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl animate-spin-slow" />
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {/* Name Field */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
-                disabled={isLoading}
-                autoComplete="name"
-              />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name}</p>
-              )}
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email address"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
-                disabled={isLoading}
-                autoComplete="email"
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
-                  className={errors.password ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
-                  disabled={isLoading}
-                  autoComplete="off"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
+      <div className="w-full max-w-md animate-fade-in-up">
+        <Card className="glass border-white/20 shadow-2xl hover-glass">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-xl" />
+          <CardHeader className="space-y-2 text-center relative z-10">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-primary rounded-xl flex items-center justify-center shadow-lg animate-glow">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
+              <span className="text-2xl font-bold text-gradient">EventHub</span>
             </div>
+            <CardTitle className="text-2xl font-bold text-foreground animate-fade-in">Create Account</CardTitle>
+            <CardDescription className="text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              Join thousands of event organizers and attendees
+            </CardDescription>
+          </CardHeader>
 
-            {/* Confirm Password Field */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
-                  disabled={isLoading}
-                  autoComplete="off"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isLoading}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
+          <CardContent className="space-y-6 relative z-10">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.3s' }}>
+                <Label htmlFor="name" className="text-sm font-medium text-foreground">
+                  Full Name
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="pl-10 glass border-white/20 focus-glass hover:bg-white/10 transition-all duration-300"
+                  />
+                </div>
               </div>
-              {errors.confirmPassword && (
-                <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-              )}
-            </div>
 
-            {/* Role Selection */}
-            <div className="space-y-3">
-              <Label>Account Type</Label>
-              <RadioGroup
-                value={formData.role}
-                onValueChange={(value) => handleInputChange("role", value)}
-                className="grid grid-cols-1 gap-3"
+              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.4s' }}>
+                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="pl-10 glass border-white/20 focus-glass hover:bg-white/10 transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.5s' }}>
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    autoComplete="off"
+                    className="pl-10 pr-10 glass border-white/20 focus-glass hover:bg-white/10 transition-all duration-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.6s' }}>
+                <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    autoComplete="off"
+                    className="pl-10 pr-10 glass border-white/20 focus-glass hover:bg-white/10 transition-all duration-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3 animate-slide-in" style={{ animationDelay: '0.7s' }}>
+                <Label className="text-sm font-medium text-foreground">Account Type</Label>
+                <RadioGroup
+                  value={formData.role}
+                  onValueChange={handleRoleChange}
+                  className="grid grid-cols-1 gap-3"
+                >
+                  <div className="flex items-center space-x-3 p-4 glass border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer">
+                    <RadioGroupItem value="user" id="user" className="text-primary" />
+                    <label htmlFor="user" className="flex items-center space-x-3 cursor-pointer flex-1">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <UserCheck className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">Attendee</div>
+                        <div className="text-sm text-muted-foreground">Join and register for events</div>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-4 glass border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer">
+                    <RadioGroupItem value="organizer" id="organizer" className="text-primary" />
+                    <label htmlFor="organizer" className="flex items-center space-x-3 cursor-pointer flex-1">
+                      <div className="p-2 bg-purple-500/20 rounded-lg">
+                        <Shield className="h-4 w-4 text-purple-500" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">Organizer</div>
+                        <div className="text-sm text-muted-foreground">Create and manage events</div>
+                      </div>
+                    </label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-purple-500 to-primary hover:from-purple-600 hover:to-primary/90 text-white glass border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-scale-in"
+                style={{ animationDelay: '0.8s' }}
                 disabled={isLoading}
               >
-                <div className="flex items-center space-x-3 rounded-lg border border-border p-4 hover:bg-accent/50 transition-colors">
-                  <RadioGroupItem value="user" id="user" />
-                  <div className="flex items-center space-x-3 flex-1">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <Label htmlFor="user" className="text-sm font-medium cursor-pointer">
-                        Regular User
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Access to browse and participate in events
-                      </p>
-                    </div>
+                {isLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Creating account...</span>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <span>Create Account</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                )}
+              </Button>
+            </form>
 
-                <div className="flex items-center space-x-3 rounded-lg border border-border p-4 hover:bg-accent/50 transition-colors">
-                  <RadioGroupItem value="organizer" id="organizer" />
-                  <div className="flex items-center space-x-3 flex-1">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <Label htmlFor="organizer" className="text-sm font-medium cursor-pointer">
-                        Event Organizer
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Create and manage events with admin permissions
-                      </p>
-                    </div>
-                  </div>
+            <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '0.9s' }}>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/20" />
                 </div>
-              </RadioGroup>
-              {errors.role && (
-                <p className="text-sm text-destructive">{errors.role}</p>
-              )}
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 glass bg-white/5 text-muted-foreground rounded-full">
+                    Already have an account?
+                  </span>
+                </div>
+              </div>
+
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  className="w-full glass border-white/20 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
+                >
+                  Sign In
+                </Button>
+              </Link>
             </div>
           </CardContent>
-
-          <CardFooter className="flex flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link
-                  href="/login"
-                  className="font-medium text-primary hover:underline focus:underline focus:outline-none"
-                >
-                  Sign in
-                </Link>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <Link
-                  href="/"
-                  className="font-medium text-primary hover:underline focus:underline focus:outline-none"
-                >
-                  Back to Home
-                </Link>
-              </p>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
-};
-
-export default SignupPage;
+}

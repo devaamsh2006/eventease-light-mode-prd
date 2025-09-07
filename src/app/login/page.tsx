@@ -1,88 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    rememberMe: false,
+    email: '',
+    password: '',
+    rememberMe: false
   });
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-  });
-
-  useEffect(() => {
-    document.title = "Sign In - EventHub";
-  }, []);
-
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear errors when user starts typing
-    if (field === "email" || field === "password") {
-      setErrors(prev => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = { email: "", password: "" };
-    let isValid = true;
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-      isValid = false;
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-      isValid = false;
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-      isValid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/signin", {
-        method: "POST",
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -92,162 +40,172 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.code === "INVALID_CREDENTIALS") {
-          toast.error("Invalid email or password. Please check your credentials and try again.");
-        } else {
-          toast.error(data.error || "Login failed. Please try again.");
-        }
-        return;
+        throw new Error(data.error || 'Login failed');
       }
 
-      toast.success("Welcome back! Redirecting to your dashboard...");
-      
-      // Redirect to dashboard after successful login
-      setTimeout(() => {
-        router.push("/dashboard");
-        router.refresh(); // Refresh to update authentication state
-      }, 1000);
+      if (data.token) {
+        localStorage.setItem('bearer_token', data.token);
+      }
 
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("Network error. Please check your connection and try again.");
+      toast.success('Login successful! Welcome back.');
+      
+      // Redirect based on user role
+      if (data.user?.role === 'organizer') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Invalid email or password. Please make sure you have already registered an account and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground">Welcome back</h1>
-          <p className="mt-2 text-muted-foreground">
-            Sign in to your EventHub account to continue
-          </p>
-        </div>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
 
-        <Card className="border border-border shadow-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Sign in</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your account
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-purple-500/5 to-blue-500/10" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl animate-spin-slow" />
+      </div>
+
+      <div className="w-full max-w-md animate-fade-in-up">
+        <Card className="glass border-white/20 shadow-2xl hover-glass">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-xl" />
+          <CardHeader className="space-y-2 text-center relative z-10">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg animate-glow">
+                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="text-2xl font-bold text-gradient">EventHub</span>
+            </div>
+            <CardTitle className="text-2xl font-bold text-foreground animate-fade-in">Welcome Back</CardTitle>
+            <CardDescription className="text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              Sign in to your account to continue
             </CardDescription>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="space-y-6 relative z-10">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email address
+              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.3s' }}>
+                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                  Email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="Enter your email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
-                    autoComplete="email"
-                    disabled={isLoading}
+                    onChange={handleChange}
+                    required
+                    className="pl-10 glass border-white/20 focus-glass hover:bg-white/10 transition-all duration-300"
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
+              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.4s' }}>
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
-                    autoComplete="current-password"
-                    disabled={isLoading}
+                    onChange={handleChange}
+                    required
+                    autoComplete="off"
+                    className="pl-10 pr-10 glass border-white/20 focus-glass hover:bg-white/10 transition-all duration-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    disabled={isLoading}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 animate-slide-in" style={{ animationDelay: '0.5s' }}>
                 <Checkbox
                   id="rememberMe"
+                  name="rememberMe"
                   checked={formData.rememberMe}
-                  onCheckedChange={(checked) => handleInputChange("rememberMe", checked as boolean)}
-                  disabled={isLoading}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ ...prev, rememberMe: checked as boolean }))
+                  }
+                  className="glass border-white/20"
                 />
-                <Label htmlFor="rememberMe" className="text-sm">
-                  Remember me for 30 days
+                <Label
+                  htmlFor="rememberMe"
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Remember me
                 </Label>
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground glass border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-scale-in"
+                style={{ animationDelay: '0.6s' }}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                     <span>Signing in...</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <span>Sign in</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <span>Sign In</span>
+                    <ArrowRight className="w-4 h-4" />
                   </div>
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm">
-              <p className="text-muted-foreground">
-                Don't have an account?{" "}
-                <Link 
-                  href="/signup" 
-                  className="text-primary hover:text-primary/80 font-medium underline underline-offset-4 transition-colors"
+            <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '0.7s' }}>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/20" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 glass bg-white/5 text-muted-foreground rounded-full">
+                    Don't have an account?
+                  </span>
+                </div>
+              </div>
+
+              <Link href="/signup">
+                <Button
+                  variant="outline"
+                  className="w-full glass border-white/20 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
                 >
-                  Create one here
-                </Link>
-              </p>
+                  Create Account
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
-
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">
-            By signing in, you agree to our{" "}
-            <Link href="/terms" className="underline underline-offset-4">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="underline underline-offset-4">
-              Privacy Policy
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
-import { ArrowRight, Users, Shield, Zap, Globe, ChevronRight, Star } from 'lucide-react';
+import { ArrowRight, Users, Shield, Zap, Globe, ChevronRight, Star, Sparkles, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,86 +15,130 @@ export default function Home() {
     {
       icon: <Shield className="h-8 w-8 text-primary" />,
       title: "Secure Authentication",
-      description: "Enterprise-grade security with role-based access control and session management."
+      description: "Enterprise-grade security with role-based access control and session management.",
+      gradient: "from-blue-500/20 to-purple-500/20"
     },
     {
       icon: <Users className="h-8 w-8 text-primary" />,
       title: "User Management", 
-      description: "Complete user lifecycle management with registration, profiles, and permissions."
+      description: "Complete user lifecycle management with registration, profiles, and permissions.",
+      gradient: "from-green-500/20 to-teal-500/20"
     },
     {
       icon: <Zap className="h-8 w-8 text-primary" />,
       title: "Fast Performance",
-      description: "Built with Next.js 15 and modern technologies for lightning-fast load times."
+      description: "Built with Next.js 15 and modern technologies for lightning-fast load times.",
+      gradient: "from-yellow-500/20 to-orange-500/20"
     },
     {
       icon: <Globe className="h-8 w-8 text-primary" />,
       title: "Modern UI/UX",
-      description: "Beautiful, responsive design with dark mode support and accessibility features."
+      description: "Beautiful, responsive design with dark mode support and accessibility features.",
+      gradient: "from-pink-500/20 to-red-500/20"
     }
   ];
 
   const stats = [
-    { label: "Active Users", value: "10K+" },
-    { label: "Uptime", value: "99.9%" },
-    { label: "Response Time", value: "<100ms" },
-    { label: "Countries", value: "50+" }
+    { label: "Active Users", value: "10K+", icon: <Users className="h-5 w-5" /> },
+    { label: "Uptime", value: "99.9%", icon: <TrendingUp className="h-5 w-5" /> },
+    { label: "Response Time", value: "<100ms", icon: <Zap className="h-5 w-5" /> },
+    { label: "Events Created", value: "50K+", icon: <Calendar className="h-5 w-5" /> }
+  ];
+
+  const testimonials = [
+    {
+      name: "Sarah Johnson",
+      role: "Event Organizer",
+      content: "EventHub has transformed how we manage our corporate events. The interface is intuitive and the features are exactly what we need.",
+      rating: 5,
+      avatar: "SJ",
+      company: "TechCorp Inc."
+    },
+    {
+      name: "Michael Chen",
+      role: "Marketing Director",
+      content: "The authentication system is rock-solid and the user management features have saved us countless hours. Highly recommended!",
+      rating: 5,
+      avatar: "MC",
+      company: "Creative Studios"
+    },
+    {
+      name: "Emily Rodriguez",
+      role: "Conference Coordinator",
+      content: "From registration to event day management, EventHub covers everything. The AI assistant is incredibly helpful too!",
+      rating: 5,
+      avatar: "ER",
+      company: "Global Events"
+    }
   ];
 
   return (
     <div className="min-h-screen">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/5 to-accent/5 rounded-full blur-3xl animate-spin-slow" />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-accent/10">
+      <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
           <div className="text-center space-y-8">
-            <div className="space-y-4">
-              <Badge variant="outline" className="text-sm font-medium">
+            <div className="space-y-6 animate-fade-in-up">
+              <Badge variant="outline" className="text-sm font-medium backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300">
+                <Sparkles className="w-4 h-4 mr-2" />
                 🚀 Welcome to EventHub
               </Badge>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-foreground leading-tight">
                 Your Complete
-                <span className="text-primary block">Event Management</span>
-                Platform
+                <span className="block bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-gradient">
+                  Event Management
+                </span>
+                <span className="block text-3xl sm:text-4xl lg:text-5xl mt-2 opacity-90">
+                  Platform
+                </span>
               </h1>
-              <p className="max-w-2xl mx-auto text-lg sm:text-xl text-muted-foreground leading-relaxed">
+              <p className="max-w-2xl mx-auto text-lg sm:text-xl text-muted-foreground leading-relaxed animate-fade-in-up delay-300">
                 Streamline your event planning with our powerful, secure, and user-friendly platform. 
                 Built for organizers, loved by attendees.
               </p>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up delay-500">
               {!isLoading && !user ? (
                 <>
                   <Link href="/signup">
-                    <Button size="lg" className="w-full sm:w-auto group">
+                    <Button size="lg" className="w-full sm:w-auto group bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                       Get Started Free
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                   <Link href="/login">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
                       Sign In
                     </Button>
                   </Link>
                 </>
               ) : !isLoading && user ? (
-                <div className="text-center space-y-4">
+                <div className="text-center space-y-4 animate-fade-in-up">
                   <div className="flex items-center justify-center space-x-2 text-muted-foreground">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span>Welcome back, {user.name}!</span>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Link href="/dashboard">
-                      <Button size="lg" className="w-full sm:w-auto group">
+                      <Button size="lg" className="w-full sm:w-auto group bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                         Go to Dashboard
                         <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </Link>
                     {user.role === 'organizer' && (
                       <Link href="/admin">
-                        <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
                           Admin Panel
                         </Button>
                       </Link>
@@ -113,13 +157,19 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 relative">
+        <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 border-y border-white/10" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-foreground">{stat.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+              <div key={index} className="text-center group">
+                <div className="backdrop-blur-sm bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
+                  <div className="flex items-center justify-center mb-2 text-primary">
+                    {stat.icon}
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -127,9 +177,9 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24">
+      <section className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-16">
+          <div className="text-center space-y-4 mb-16 animate-fade-in-up">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               Why Choose EventHub?
             </h2>
@@ -140,14 +190,15 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="relative group hover:shadow-lg transition-all duration-300 border-border/50">
-                <CardHeader className="space-y-4">
-                  <div className="p-2 w-fit rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Card key={index} className={`relative group hover:shadow-lg transition-all duration-500 border-white/20 backdrop-blur-sm bg-gradient-to-br ${feature.gradient} hover:scale-105 transform animate-fade-in-up`} style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-lg" />
+                <CardHeader className="space-y-4 relative z-10">
+                  <div className="p-2 w-fit rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors backdrop-blur-sm">
                     {feature.icon}
                   </div>
                   <CardTitle className="text-xl">{feature.title}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative z-10">
                   <CardDescription className="text-muted-foreground leading-relaxed">
                     {feature.description}
                   </CardDescription>
@@ -159,9 +210,10 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-24 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-16">
+      <section className="py-24 relative">
+        <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 border-y border-white/10" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 mb-16 animate-fade-in-up">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
               What Our Users Say
             </h2>
@@ -171,37 +223,24 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Sarah Johnson",
-                role: "Event Organizer",
-                content: "EventHub has transformed how we manage our corporate events. The interface is intuitive and the features are exactly what we need.",
-                rating: 5
-              },
-              {
-                name: "Michael Chen",
-                role: "Marketing Director",
-                content: "The authentication system is rock-solid and the user management features have saved us countless hours. Highly recommended!",
-                rating: 5
-              },
-              {
-                name: "Emily Rodriguez",
-                role: "Conference Coordinator",
-                content: "From registration to event day management, EventHub covers everything. The AI assistant is incredibly helpful too!",
-                rating: 5
-              }
-            ].map((testimonial, index) => (
-              <Card key={index} className="hover:shadow-lg transition-all duration-300">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="hover:shadow-lg transition-all duration-500 backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transform hover:scale-105 animate-fade-in-up" style={{ animationDelay: `${index * 200}ms` }}>
                 <CardContent className="pt-6">
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
-                  <p className="text-muted-foreground mb-4 italic">"{testimonial.content}"</p>
-                  <div className="border-t pt-4">
-                    <div className="font-semibold text-foreground">{testimonial.name}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                  <p className="text-muted-foreground mb-6 italic leading-relaxed">"{testimonial.content}"</p>
+                  <div className="border-t border-white/20 pt-4 flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center text-white font-semibold text-sm">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-foreground">{testimonial.name}</div>
+                      <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                      <div className="text-xs text-muted-foreground opacity-75">{testimonial.company}</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -211,26 +250,30 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 space-y-8">
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            Ready to Get Started?
-          </h2>
-          <p className="text-lg opacity-90 max-w-2xl mx-auto">
-            Join thousands of event organizers who trust EventHub for their event management needs. 
-            Start your free account today and experience the difference.
-          </p>
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/80" />
+        <div className="absolute inset-0 backdrop-blur-sm bg-black/10" />
+        <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 space-y-8">
+          <div className="space-y-6 animate-fade-in-up">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+              Ready to Get Started?
+            </h2>
+            <p className="text-lg text-white/90 max-w-2xl mx-auto leading-relaxed">
+              Join thousands of event organizers who trust EventHub for their event management needs. 
+              Start your free account today and experience the difference.
+            </p>
+          </div>
           
           {!isLoading && !user && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up delay-300">
               <Link href="/signup">
-                <Button size="lg" variant="secondary" className="w-full sm:w-auto group">
+                <Button size="lg" variant="secondary" className="w-full sm:w-auto group bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
               <Link href="/login">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/30 text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-300 transform hover:scale-105">
                   Sign In Now
                 </Button>
               </Link>
