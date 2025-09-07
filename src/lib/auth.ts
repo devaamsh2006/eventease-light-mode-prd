@@ -1,111 +1,52 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/db";
-import { users } from "@/db/schema";
+import { NextRequest } from 'next/server';
+import { db } from '@/db';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
-export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "sqlite",
-    schema: {
-      user: users,
-    },
-  }),
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: false,
-    minPasswordLength: 8,
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // 1 day
-  },
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        required: false,
-        defaultValue: "user",
-      },
-    },
-  },
-  trustedOrigins: ["http://localhost:3000"],
-  baseURL: "http://localhost:3000",
-});
-
-export type User = typeof auth.$Infer.User & {
-  role: "user" | "organizer";
-};
-
-export type Session = typeof auth.$Infer.Session;
-
-// Helper function to get current user from request
-export async function getCurrentUser(request: Request): Promise<User | null> {
+export async function getCurrentUser(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    // Get session cookie from request
+    const sessionCookie = request.cookies.get('session');
+    
+    if (!sessionCookie || !sessionCookie.value) {
       return null;
     }
 
-    return session.user as User;
+    // Extract user ID from session cookie format "user_{id}"
+    const sessionValue = sessionCookie.value;
+    if (!sessionValue.startsWith('user_')) {
+      return null;
+    }
+
+    const userIdStr = sessionValue.replace('user_', '');
+    const userId = parseInt(userIdStr);
+
+    if (isNaN(userId) || userId <= 0) {
+      return null;
+    }
+
+    // Look up user in database by ID
+    const user = await db.select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+    if (user.length === 0) {
+      return null;
+    }
+
+    // Return user object without password
+    return user[0];
+
   } catch (error) {
-    console.error("Error getting current user:", error);
+    console.error('getCurrentUser error:', error);
     return null;
   }
 }
-
-// Helper function to check if user has specific role
-export function hasRole(user: User | null, role: "user" | "organizer"): boolean {
-  if (!user) return false;
-  return user.role === role;
-}
-
-// Helper function to check if user has organizer role
-export function isOrganizer(user: User | null): boolean {
-  return hasRole(user, "organizer");
-}
-
-// Helper function to check if user has user role
-export function isUser(user: User | null): boolean {
-  return hasRole(user, "user");
-}
-
-// Middleware helper for role-based access
-export async function requireRole(
-  request: Request, 
-  requiredRole: "user" | "organizer"
-): Promise<{ user: User; success: true } | { error: string; status: number; success: false }> {
-  const user = await getCurrentUser(request);
-  
-  if (!user) {
-    return {
-      error: "Authentication required",
-      status: 401,
-      success: false
-    };
-  }
-
-  if (!hasRole(user, requiredRole)) {
-    return {
-      error: `Access denied. ${requiredRole} role required`,
-      status: 403,
-      success: false
-    };
-  }
-
-  return {
-    user,
-    success: true
-  };
-}
-
-// Middleware helper for organizer access
-export async function requireOrganizer(
-  request: Request
-): Promise<{ user: User; success: true } | { error: string; status: number; success: false }> {
-  return requireRole(request, "organizer");
-}
-
-export default auth;

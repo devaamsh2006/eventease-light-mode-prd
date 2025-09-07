@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/components/AuthProvider';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { 
   User, 
@@ -20,597 +24,658 @@ import {
   Shield,
   Clock,
   TrendingUp,
-  Eye
+  Eye,
+  MapPin,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Search,
+  Filter,
+  Calendar as CalendarIcon,
+  Plus
 } from 'lucide-react';
 
-interface UserData {
+interface Registration {
   id: number;
-  name: string;
-  email: string;
-  role: 'user' | 'organizer';
+  eventId: number;
+  userId: number;
+  registrationDate: string;
+  status: 'registered' | 'cancelled';
   createdAt: string;
-  updatedAt: string;
+  event: {
+    id: number;
+    title: string;
+    description?: string;
+    eventDate: string;
+    location?: string;
+    maxAttendees?: number;
+    status: 'draft' | 'published' | 'cancelled';
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+interface AttendanceRecord {
+  id: number;
+  isPresent: boolean;
+  markedAt?: string;
+  notes?: string;
+  registration: {
+    id: number;
+    registrationDate: string;
+    status: string;
+  };
+  event: {
+    id: number;
+    title: string;
+    description?: string;
+    eventDate: string;
+    location?: string;
+  };
 }
 
 interface DashboardStats {
-  totalEvents?: number;
-  upcomingEvents?: number;
-  totalBookings?: number;
-  activeUsers?: number;
+  totalRegistrations: number;
+  upcomingEvents: number;
+  attendedEvents: number;
+  attendanceRate: number;
 }
 
-export default function Dashboard() {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [signOutLoading, setSignOutLoading] = useState(false);
+export default function AttendeeDashboard() {
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  // Mock stats data - replace with actual API calls
-  const [stats] = useState<DashboardStats>({
-    totalEvents: user?.role === 'organizer' ? 12 : 5,
-    upcomingEvents: user?.role === 'organizer' ? 4 : 2,
-    totalBookings: user?.role === 'organizer' ? 148 : 7,
-    activeUsers: user?.role === 'organizer' ? 1250 : undefined,
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalRegistrations: 0,
+    upcomingEvents: 0,
+    attendedEvents: 0,
+    attendanceRate: 0
   });
 
+  const [loading, setLoading] = useState(true);
+  const [currentTab, setCurrentTab] = useState('overview');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedEvent, setSelectedEvent] = useState<Registration | null>(null);
+  const [showEventDetails, setShowEventDetails] = useState(false);
+
+  // Authentication check
   useEffect(() => {
-    checkAuthentication();
-  }, []);
-
-  const checkAuthentication = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/auth/session', {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (response.status === 401) {
-        // Not authenticated, redirect to login
-        router.push('/login?redirect=/dashboard');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
         return;
       }
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Redirect organizers to their admin dashboard
+      if (user.role === 'organizer') {
+        router.push('/admin');
+        return;
       }
+    }
+  }, [user, authLoading, router]);
 
-      const userData = await response.json();
-      setUser(userData);
-    } catch (err) {
-      console.error('Authentication check failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load user data');
+  // Fetch user registrations
+  const fetchRegistrations = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch('/api/registrations?limit=100&sort=eventDate&order=desc');
+      if (!response.ok) throw new Error('Failed to fetch registrations');
       
-      // If it's a network error or server error, show error state
-      // If it's an auth error, redirect to login
-      if (err instanceof Error && err.message.includes('401')) {
-        router.push('/login?redirect=/dashboard');
-      }
+      const data = await response.json();
+      setRegistrations(data);
+
+      // Calculate stats
+      const now = new Date().toISOString();
+      const totalRegistrations = data.filter((r: Registration) => r.status === 'registered').length;
+      const upcomingEvents = data.filter((r: Registration) => 
+        r.status === 'registered' && r.event.eventDate > now
+      ).length;
+
+      setStats(prev => ({
+        ...prev,
+        totalRegistrations,
+        upcomingEvents
+      }));
+
+    } catch (error) {
+      console.error('Error fetching registrations:', error);
+      toast.error('Failed to load your events');
     } finally {
       setLoading(false);
     }
+  }, [user]);
+
+  // Fetch attendance history
+  const fetchAttendanceHistory = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/users/attendance?limit=100');
+      if (!response.ok) throw new Error('Failed to fetch attendance history');
+      
+      const data = await response.json();
+      setAttendanceHistory(data);
+
+      // Calculate attendance stats
+      const attendedEvents = data.filter((a: AttendanceRecord) => a.isPresent).length;
+      const totalMarkedEvents = data.length;
+      const attendanceRate = totalMarkedEvents > 0 ? Math.round((attendedEvents / totalMarkedEvents) * 100) : 0;
+
+      setStats(prev => ({
+        ...prev,
+        attendedEvents,
+        attendanceRate
+      }));
+
+    } catch (error) {
+      console.error('Error fetching attendance history:', error);
+      toast.error('Failed to load attendance history');
+    }
+  }, [user]);
+
+  // Initial data load
+  useEffect(() => {
+    if (user && user.role === 'user') {
+      fetchRegistrations();
+      fetchAttendanceHistory();
+    }
+  }, [fetchRegistrations, fetchAttendanceHistory, user]);
+
+  // Handle event details
+  const handleViewEventDetails = (registration: Registration) => {
+    setSelectedEvent(registration);
+    setShowEventDetails(true);
   };
 
-  const handleSignOut = async () => {
+  // Handle event cancellation
+  const handleCancelRegistration = async (eventId: number) => {
+    if (!confirm('Are you sure you want to cancel your registration for this event?')) {
+      return;
+    }
+
     try {
-      setSignOutLoading(true);
-      
-      const response = await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch(`/api/events/${eventId}/register?eventId=${eventId}`, {
+        method: 'DELETE'
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sign out');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel registration');
       }
 
-      toast.success('Successfully signed out');
-      router.push('/');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      toast.error('Failed to sign out. Please try again.');
-    } finally {
-      setSignOutLoading(false);
+      toast.success('Registration cancelled successfully');
+      fetchRegistrations();
+      setShowEventDetails(false);
+    } catch (error) {
+      console.error('Error cancelling registration:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel registration');
     }
   };
 
+  // Utility functions
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const getRoleBadgeVariant = (role: string) => {
-    return role === 'organizer' ? 'default' : 'secondary';
+  const getEventStatusBadge = (event: Registration) => {
+    const now = new Date();
+    const eventDate = new Date(event.event.eventDate);
+    
+    if (event.status === 'cancelled') {
+      return <Badge variant="destructive">Cancelled</Badge>;
+    }
+    
+    if (eventDate < now) {
+      return <Badge variant="secondary">Past Event</Badge>;
+    }
+    
+    if (event.event.status === 'cancelled') {
+      return <Badge variant="destructive">Event Cancelled</Badge>;
+    }
+    
+    return <Badge variant="default">Registered</Badge>;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header Skeleton */}
-          <div className="mb-8">
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
-          </div>
+  const getAttendanceStatusBadge = (record: AttendanceRecord) => {
+    if (record.isPresent) {
+      return <Badge className="bg-green-100 text-green-800">Present</Badge>;
+    } else {
+      return <Badge className="bg-red-100 text-red-800">Absent</Badge>;
+    }
+  };
 
-          {/* Stats Grid Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </CardContent>
-              </Card>
+  const filteredRegistrations = registrations.filter(registration => {
+    const matchesSearch = !searchTerm || 
+      registration.event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registration.event.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'upcoming' && new Date(registration.event.eventDate) > new Date()) ||
+      (statusFilter === 'past' && new Date(registration.event.eventDate) <= new Date()) ||
+      (statusFilter === registration.status);
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <Skeleton className="h-8 w-64" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32" />
             ))}
           </div>
-
-          {/* Content Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="flex-1">
-                          <Skeleton className="h-4 w-48 mb-1" />
-                          <Skeleton className="h-3 w-32" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-32 w-full" />
-              </CardContent>
-            </Card>
-          </div>
+          <Skeleton className="h-96" />
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-muted-foreground">{error}</p>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={checkAuthentication} variant="outline">
-                Retry
-              </Button>
-              <Button onClick={() => router.push('/login')} variant="default">
-                Go to Login
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null; // Will redirect to login
+  if (!user || user.role !== 'user') {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2 text-primary">
-                <Home className="h-5 w-5" />
-                <span className="font-semibold">Home</span>
-              </Link>
-              <div className="text-muted-foreground">/</div>
-              <span className="font-medium">Dashboard</span>
-            </div>
-            <Button 
-              onClick={handleSignOut} 
-              variant="outline" 
-              size="sm"
-              disabled={signOutLoading}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              {signOutLoading ? 'Signing out...' : 'Sign Out'}
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">My Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {user.name}!</p>
+          </div>
+          <Link href="/events/discover">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Discover Events
             </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold">
-              Welcome back, {user.name}!
-            </h1>
-            <Badge variant={getRoleBadgeVariant(user.role)} className="flex items-center gap-1">
-              {user.role === 'organizer' && <Shield className="h-3 w-3" />}
-              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground">
-            {user.role === 'organizer' 
-              ? 'Manage your events and monitor your organization\'s activity.'
-              : 'View your bookings and discover new events.'
-            }
-          </p>
+          </Link>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {user.role === 'organizer' ? (
-            <>
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Events
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalEvents}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +2 from last month
-                  </p>
-                </CardContent>
-              </Card>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">My Events</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalRegistrations}</div>
+              <p className="text-xs text-muted-foreground">Total registered events</p>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Upcoming Events
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Next 30 days
-                  </p>
-                </CardContent>
-              </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
+              <p className="text-xs text-muted-foreground">Events to attend</p>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Bookings
-                  </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalBookings}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +12% from last month
-                  </p>
-                </CardContent>
-              </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Events Attended</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.attendedEvents}</div>
+              <p className="text-xs text-muted-foreground">Successfully attended</p>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Active Users
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.activeUsers}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +5% from last month
-                  </p>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    My Events
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalEvents}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Events attended
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Upcoming
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Next 30 days
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    My Bookings
-                  </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalBookings}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Total bookings made
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Profile Views
-                  </CardTitle>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">24</div>
-                  <p className="text-xs text-muted-foreground">
-                    This month
-                  </p>
-                </CardContent>
-              </Card>
-            </>
-          )}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.attendanceRate}%</div>
+              <p className="text-xs text-muted-foreground">Overall attendance</p>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {user.role === 'organizer' ? (
-                    <>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+        {/* Main Content */}
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="events">My Events</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance History</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Upcoming Events */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Events</CardTitle>
+                  <CardDescription>Your next registered events</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {registrations
+                    .filter(r => r.status === 'registered' && new Date(r.event.eventDate) > new Date())
+                    .slice(0, 3)
+                    .map((registration) => (
+                      <div key={registration.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex-1">
-                          <p className="text-sm font-medium">New booking received</p>
-                          <p className="text-xs text-muted-foreground">
-                            Tech Conference 2024 - 2 hours ago
-                          </p>
+                          <h4 className="font-medium">{registration.event.title}</h4>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                            <CalendarIcon className="h-3 w-3" />
+                            <span>{formatDate(registration.event.eventDate)}</span>
+                            {registration.event.location && (
+                              <>
+                                <MapPin className="h-3 w-3 ml-2" />
+                                <span>{registration.event.location}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewEventDetails(registration)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    ))}
+                  
+                  {registrations.filter(r => r.status === 'registered' && new Date(r.event.eventDate) > new Date()).length === 0 && (
+                    <div className="text-center py-8">
+                      <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">No upcoming events</p>
+                      <Link href="/events/discover">
+                        <Button variant="outline" size="sm" className="mt-2">
+                          Discover Events
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Your latest event activities</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {registrations
+                    .slice(0, 5)
+                    .map((registration) => (
+                      <div key={registration.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                         <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">Event published</p>
+                          <p className="text-sm font-medium">
+                            {registration.status === 'registered' ? 'Registered for' : 'Cancelled registration for'}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Workshop: React Best Practices - 1 day ago
+                            {registration.event.title} - {formatDate(registration.registrationDate)}
                           </p>
                         </div>
+                        {getEventStatusBadge(registration)}
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Event updated</p>
-                          <p className="text-xs text-muted-foreground">
-                            Annual Meeting - Updated venue - 2 days ago
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Event booked successfully</p>
-                          <p className="text-xs text-muted-foreground">
-                            Tech Conference 2024 - 1 day ago
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Reminder sent</p>
-                          <p className="text-xs text-muted-foreground">
-                            Workshop tomorrow at 10 AM - 3 hours ago
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Profile updated</p>
-                          <p className="text-xs text-muted-foreground">
-                            Updated contact information - 1 week ago
-                          </p>
-                        </div>
-                      </div>
-                    </>
+                    ))}
+                  
+                  {registrations.length === 0 && (
+                    <div className="text-center py-8">
+                      <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">No recent activity</p>
+                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-            {/* Quick Actions */}
+          {/* My Events Tab */}
+          <TabsContent value="events" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {user.role === 'organizer' ? (
-                    <>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <Calendar className="h-6 w-6" />
-                        <span className="text-sm">Create Event</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <Users className="h-6 w-6" />
-                        <span className="text-sm">Manage Users</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <BarChart3 className="h-6 w-6" />
-                        <span className="text-sm">View Reports</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <Settings className="h-6 w-6" />
-                        <span className="text-sm">Settings</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <TrendingUp className="h-6 w-6" />
-                        <span className="text-sm">Analytics</span>
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <Calendar className="h-6 w-6" />
-                        <span className="text-sm">Browse Events</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <Clock className="h-6 w-6" />
-                        <span className="text-sm">My Schedule</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <User className="h-6 w-6" />
-                        <span className="text-sm">Edit Profile</span>
-                      </Button>
-                      <Button className="h-auto p-4 flex flex-col gap-2" variant="outline">
-                        <Settings className="h-6 w-6" />
-                        <span className="text-sm">Preferences</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Profile Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Profile Summary
-                </CardTitle>
+                <CardTitle>My Registered Events</CardTitle>
+                <CardDescription>All events you've registered for</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Name</p>
-                  <p className="text-sm text-muted-foreground">{user.name}</p>
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Search events..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="max-w-sm"
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="all">All Events</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="past">Past Events</option>
+                    <option value="registered">Active</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Role</p>
-                  <Badge variant={getRoleBadgeVariant(user.role)} className="mt-1">
-                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Member Since</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(user.createdAt)}
-                  </p>
-                </div>
-                <Button className="w-full" variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
+
+                {/* Events List */}
+                {filteredRegistrations.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold">No events found</h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm || statusFilter !== 'all' 
+                        ? 'Try adjusting your filters' 
+                        : 'Start by discovering and registering for events'}
+                    </p>
+                    <Link href="/events/discover">
+                      <Button className="mt-4">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Discover Events
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredRegistrations.map((registration) => (
+                      <div key={registration.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold">{registration.event.title}</h3>
+                              {getEventStatusBadge(registration)}
+                            </div>
+                            
+                            {registration.event.description && (
+                              <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                {registration.event.description}
+                              </p>
+                            )}
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3" />
+                                <span>{formatDate(registration.event.eventDate)}</span>
+                              </div>
+                              {registration.event.location && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>{registration.event.location}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>Registered {formatDate(registration.registrationDate)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewEventDetails(registration)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Performance/Stats Card */}
+          {/* Attendance History Tab */}
+          <TabsContent value="attendance" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  {user.role === 'organizer' ? 'Organization Performance' : 'Your Activity'}
-                </CardTitle>
+                <CardTitle>Attendance History</CardTitle>
+                <CardDescription>Your attendance record for past events</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {user.role === 'organizer' ? (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Event Success Rate</span>
-                        <span className="text-sm font-medium">94%</span>
+                {attendanceHistory.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold">No attendance records</h3>
+                    <p className="text-muted-foreground">
+                      Your attendance will be tracked after you attend events
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {attendanceHistory.map((record) => (
+                      <div key={record.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold">{record.event.title}</h3>
+                              {getAttendanceStatusBadge(record)}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3" />
+                                <span>{formatDate(record.event.eventDate)}</span>
+                              </div>
+                              {record.event.location && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>{record.event.location}</span>
+                                </div>
+                              )}
+                              {record.markedAt && (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>Marked {formatDate(record.markedAt)}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {record.notes && (
+                              <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
+                                <strong>Note:</strong> {record.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Avg. Attendance</span>
-                        <span className="text-sm font-medium">87%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Customer Rating</span>
-                        <span className="text-sm font-medium">4.8/5</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Events Attended</span>
-                        <span className="text-sm font-medium">12</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Attendance Rate</span>
-                        <span className="text-sm font-medium">95%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Avg. Rating Given</span>
-                        <span className="text-sm font-medium">4.6/5</span>
-                      </div>
-                    </>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Event Details Dialog */}
+        <Dialog open={showEventDetails} onOpenChange={setShowEventDetails}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{selectedEvent?.event.title}</DialogTitle>
+              <DialogDescription>Event details and registration information</DialogDescription>
+            </DialogHeader>
+            
+            {selectedEvent && (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedEvent.event.description || 'No description provided'}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-1">Event Date</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(selectedEvent.event.eventDate)}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Location</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedEvent.event.location || 'No location specified'}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Registration Date</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(selectedEvent.registrationDate)}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1">Status</h4>
+                    {getEventStatusBadge(selectedEvent)}
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-4 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowEventDetails(false)}
+                  >
+                    Close
+                  </Button>
+                  {selectedEvent.status === 'registered' && 
+                   new Date(selectedEvent.event.eventDate) > new Date() && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleCancelRegistration(selectedEvent.event.id)}
+                    >
+                      Cancel Registration
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
