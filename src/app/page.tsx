@@ -13,28 +13,28 @@ export default function Home() {
 
   const features = [
     {
-      icon: <Shield className="h-8 w-8 text-primary" />,
+      icon: <Shield className="h-8 w-8 text-primary animate-glow" />,
       title: "Secure Authentication",
       description: "Enterprise-grade security with role-based access control and session management.",
-      gradient: "from-blue-500/20 to-purple-500/20"
+      gradient: "glass-primary"
     },
     {
-      icon: <Users className="h-8 w-8 text-primary" />,
+      icon: <Users className="h-8 w-8 text-accent animate-glow" />,
       title: "User Management", 
       description: "Complete user lifecycle management with registration, profiles, and permissions.",
-      gradient: "from-green-500/20 to-teal-500/20"
+      gradient: "glass-success"
     },
     {
-      icon: <Zap className="h-8 w-8 text-primary" />,
+      icon: <Zap className="h-8 w-8 text-yellow-500 animate-glow" />,
       title: "Fast Performance",
       description: "Built with Next.js 15 and modern technologies for lightning-fast load times.",
-      gradient: "from-yellow-500/20 to-orange-500/20"
+      gradient: "glass-warning"
     },
     {
-      icon: <Globe className="h-8 w-8 text-primary" />,
+      icon: <Globe className="h-8 w-8 text-pink-500 animate-glow" />,
       title: "Modern UI/UX",
       description: "Beautiful, responsive design with dark mode support and accessibility features.",
-      gradient: "from-pink-500/20 to-red-500/20"
+      gradient: "glass-accent"
     }
   ];
 
@@ -73,31 +73,29 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-animated">
       {/* Animated Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/5 to-accent/5 rounded-full blur-3xl animate-spin-slow" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/10 to-accent/10 rounded-full blur-3xl animate-spin-slow" />
       </div>
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
           <div className="text-center space-y-8">
             <div className="space-y-6 animate-fade-in-up">
-              <Badge variant="outline" className="text-sm font-medium backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300">
-                <Sparkles className="w-4 h-4 mr-2" />
+              <Badge variant="outline" className="text-sm font-medium glass hover-glass animate-glow">
+                <Sparkles className="w-4 h-4 mr-2 animate-rainbow" />
                 🚀 Welcome to EventHub
               </Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-foreground leading-tight">
                 Your Complete
-                <span className="block bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-gradient">
+                <span className="block text-rainbow animate-gradient text-glow">
                   Event Management
                 </span>
-                <span className="block text-3xl sm:text-4xl lg:text-5xl mt-2 opacity-90">
+                <span className="block text-3xl sm:text-4xl lg:text-5xl mt-2 text-shimmer">
                   Platform
                 </span>
               </h1>
@@ -112,13 +110,13 @@ export default function Home() {
               {!isLoading && !user ? (
                 <>
                   <Link href="/signup">
-                    <Button size="lg" className="w-full sm:w-auto group bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <Button size="lg" className="w-full sm:w-auto group btn-glow hover-lift">
                       Get Started Free
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                   <Link href="/login">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto glass hover-glass">
                       Sign In
                     </Button>
                   </Link>
@@ -126,19 +124,19 @@ export default function Home() {
               ) : !isLoading && user ? (
                 <div className="text-center space-y-4 animate-fade-in-up">
                   <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span>Welcome back, {user.name}!</span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse-color" />
+                    <span className="text-glow">Welcome back, {user.name}!</span>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Link href="/dashboard">
-                      <Button size="lg" className="w-full sm:w-auto group bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                      <Button size="lg" className="w-full sm:w-auto group btn-glow hover-lift">
                         Go to Dashboard
                         <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </Link>
                     {user.role === 'organizer' && (
                       <Link href="/admin">
-                        <Button variant="outline" size="lg" className="w-full sm:w-auto backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto glass hover-glass">
                           Admin Panel
                         </Button>
                       </Link>
@@ -158,17 +156,19 @@ export default function Home() {
 
       {/* Stats Section */}
       <section className="py-16 relative">
-        <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 border-y border-white/10" />
+        <div className="absolute inset-0 glass-subtle" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center group">
-                <div className="backdrop-blur-sm bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
-                  <div className="flex items-center justify-center mb-2 text-primary">
-                    {stat.icon}
+                <div className="glass hover-lift animate-scale-in" style={{ animationDelay: `${index * 100}ms` }}>
+                  <div className="p-6">
+                    <div className="flex items-center justify-center mb-2 text-primary animate-glow">
+                      {stat.icon}
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1 text-gradient animate-pulse-color">{stat.value}</div>
+                    <div className="text-sm text-muted-foreground">{stat.label}</div>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
                 </div>
               </div>
             ))}
@@ -180,7 +180,7 @@ export default function Home() {
       <section className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16 animate-fade-in-up">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+            <h2 className="text-3xl sm:text-4xl font-bold text-rainbow animate-gradient text-glow">
               Why Choose EventHub?
             </h2>
             <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
@@ -190,15 +190,14 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className={`relative group hover:shadow-lg transition-all duration-500 border-white/20 backdrop-blur-sm bg-gradient-to-br ${feature.gradient} hover:scale-105 transform animate-fade-in-up`} style={{ animationDelay: `${index * 100}ms` }}>
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-lg" />
-                <CardHeader className="space-y-4 relative z-10">
-                  <div className="p-2 w-fit rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors backdrop-blur-sm">
+              <Card key={index} className={`${feature.gradient} hover-lift animate-scale-in`} style={{ animationDelay: `${index * 100}ms` }}>
+                <CardHeader className="space-y-4">
+                  <div className="p-2 w-fit rounded-lg glass-strong hover-glow">
                     {feature.icon}
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardTitle className="text-xl text-gradient">{feature.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="relative z-10">
+                <CardContent>
                   <CardDescription className="text-muted-foreground leading-relaxed">
                     {feature.description}
                   </CardDescription>
@@ -211,10 +210,10 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <section className="py-24 relative">
-        <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 border-y border-white/10" />
+        <div className="absolute inset-0 glass-subtle" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16 animate-fade-in-up">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+            <h2 className="text-3xl sm:text-4xl font-bold text-rainbow animate-gradient text-glow">
               What Our Users Say
             </h2>
             <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
@@ -224,20 +223,20 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="hover:shadow-lg transition-all duration-500 backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transform hover:scale-105 animate-fade-in-up" style={{ animationDelay: `${index * 200}ms` }}>
+              <Card key={index} className="glass hover-lift animate-scale-in" style={{ animationDelay: `${index * 200}ms` }}>
                 <CardContent className="pt-6">
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400 animate-glow" />
                     ))}
                   </div>
                   <p className="text-muted-foreground mb-6 italic leading-relaxed">"{testimonial.content}"</p>
                   <div className="border-t border-white/20 pt-4 flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center text-white font-semibold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-vibrant-gradient flex items-center justify-center text-white font-semibold text-sm animate-rainbow">
                       {testimonial.avatar}
                     </div>
                     <div>
-                      <div className="font-semibold text-foreground">{testimonial.name}</div>
+                      <div className="font-semibold text-foreground text-gradient">{testimonial.name}</div>
                       <div className="text-sm text-muted-foreground">{testimonial.role}</div>
                       <div className="text-xs text-muted-foreground opacity-75">{testimonial.company}</div>
                     </div>
@@ -251,14 +250,14 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/80" />
-        <div className="absolute inset-0 backdrop-blur-sm bg-black/10" />
+        <div className="absolute inset-0 bg-vibrant-gradient animate-gradient" />
+        <div className="absolute inset-0 glass-subtle" />
         <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="space-y-6 animate-fade-in-up">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white text-glow animate-bounce-gentle">
               Ready to Get Started?
             </h2>
-            <p className="text-lg text-white/90 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-white/90 max-w-2xl mx-auto leading-relaxed text-shimmer">
               Join thousands of event organizers who trust EventHub for their event management needs. 
               Start your free account today and experience the difference.
             </p>
@@ -267,13 +266,13 @@ export default function Home() {
           {!isLoading && !user && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up delay-300">
               <Link href="/signup">
-                <Button size="lg" variant="secondary" className="w-full sm:w-auto group bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <Button size="lg" variant="secondary" className="w-full sm:w-auto group glass-strong hover-lift animate-glow">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
               <Link href="/login">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/30 text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-300 transform hover:scale-105">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto glass hover-glass">
                   Sign In Now
                 </Button>
               </Link>
