@@ -1,23 +1,39 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles, UserCheck, Shield } from 'lucide-react';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Sparkles,
+  UserCheck,
+  Shield,
+} from "lucide-react";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'user' as 'user' | 'organizer'
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: "user" as "user" | "organizer",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -26,47 +42,49 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          role: formData.role
+          role: formData.role,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || "Registration failed");
       }
 
-      toast.success('Account created successfully! Please sign in.');
-      router.push('/login?registered=true');
+      toast.success("Account created successfully! Please sign in.");
+      router.push("/login?registered=true");
     } catch (error: any) {
-      console.error('Signup error:', error);
-      if (error.message.includes('already exists')) {
-        toast.error('Email already registered. Please use a different email or sign in.');
+      console.error("Signup error:", error);
+      if (error.message.includes("already exists")) {
+        toast.error(
+          "Email already registered. Please use a different email or sign in."
+        );
       } else {
-        toast.error(error.message || 'Registration failed. Please try again.');
+        toast.error(error.message || "Registration failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -75,16 +93,16 @@ export default function SignupPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleRoleChange = (value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      role: value as 'user' | 'organizer'
+      role: value as "user" | "organizer",
     }));
   };
 
@@ -94,7 +112,10 @@ export default function SignupPage() {
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-primary/5 to-teal-500/10" />
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }} />
+        <div
+          className="absolute bottom-0 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-float"
+          style={{ animationDelay: "3s" }}
+        />
         <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl animate-spin-slow" />
       </div>
 
@@ -108,16 +129,28 @@ export default function SignupPage() {
               </div>
               <span className="text-2xl font-bold text-gradient">EventHub</span>
             </div>
-            <CardTitle className="text-2xl font-bold text-foreground animate-fade-in">Create Account</CardTitle>
-            <CardDescription className="text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <CardTitle className="text-2xl font-bold text-foreground animate-fade-in">
+              Create Account
+            </CardTitle>
+            <CardDescription
+              className="text-muted-foreground animate-fade-in"
+              style={{ animationDelay: "0.2s" }}
+            >
               Join thousands of event organizers and attendees
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6 relative z-10">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.3s' }}>
-                <Label htmlFor="name" className="text-sm font-medium text-foreground">
+              {/* Full Name */}
+              <div
+                className="space-y-2 animate-slide-in"
+                style={{ animationDelay: "0.3s" }}
+              >
+                <Label
+                  htmlFor="name"
+                  className="text-sm font-medium text-foreground"
+                >
                   Full Name
                 </Label>
                 <div className="relative">
@@ -135,8 +168,15 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.4s' }}>
-                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+              {/* Email */}
+              <div
+                className="space-y-2 animate-slide-in"
+                style={{ animationDelay: "0.4s" }}
+              >
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-foreground"
+                >
                   Email
                 </Label>
                 <div className="relative">
@@ -154,8 +194,15 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.5s' }}>
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+              {/* Password */}
+              <div
+                className="space-y-2 animate-slide-in"
+                style={{ animationDelay: "0.5s" }}
+              >
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-foreground"
+                >
                   Password
                 </Label>
                 <div className="relative">
@@ -163,7 +210,7 @@ export default function SignupPage() {
                   <Input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
                     value={formData.password}
                     onChange={handleChange}
@@ -176,13 +223,24 @@ export default function SignupPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2 animate-slide-in" style={{ animationDelay: '0.6s' }}>
-                <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+              {/* Confirm Password */}
+              <div
+                className="space-y-2 animate-slide-in"
+                style={{ animationDelay: "0.6s" }}
+              >
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-sm font-medium text-foreground"
+                >
                   Confirm Password
                 </Label>
                 <div className="relative">
@@ -190,7 +248,7 @@ export default function SignupPage() {
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
@@ -200,52 +258,80 @@ export default function SignupPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-3 animate-slide-in" style={{ animationDelay: '0.7s' }}>
-                <Label className="text-sm font-medium text-foreground">Account Type</Label>
+              {/* Account Type */}
+              <div
+                className="space-y-3 animate-slide-in"
+                style={{ animationDelay: "0.7s" }}
+              >
+                <Label className="text-sm font-medium text-foreground">
+                  Account Type
+                </Label>
                 <RadioGroup
                   value={formData.role}
                   onValueChange={handleRoleChange}
                   className="grid grid-cols-1 gap-3"
                 >
-                  <div className="flex items-center space-x-3 p-4 glass border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer">
-                    <RadioGroupItem value="user" id="user" className="text-primary" />
-                    <label htmlFor="user" className="flex items-center space-x-3 cursor-pointer flex-1">
+                  <label
+                    htmlFor="user"
+                    className="flex items-center space-x-3 p-4 glass border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer"
+                  >
+                    <RadioGroupItem value="user" id="user" />
+                    <div className="flex items-center space-x-3 flex-1">
                       <div className="p-2 bg-blue-500/20 rounded-lg">
                         <UserCheck className="h-4 w-4 text-blue-500" />
                       </div>
                       <div>
-                        <div className="font-medium text-foreground">Attendee</div>
-                        <div className="text-sm text-muted-foreground">Join and register for events</div>
+                        <div className="font-medium text-foreground">
+                          Attendee
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Join and register for events
+                        </div>
                       </div>
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-3 p-4 glass border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer">
-                    <RadioGroupItem value="organizer" id="organizer" className="text-primary" />
-                    <label htmlFor="organizer" className="flex items-center space-x-3 cursor-pointer flex-1">
+                    </div>
+                  </label>
+
+                  <label
+                    htmlFor="organizer"
+                    className="flex items-center space-x-3 p-4 glass border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer"
+                  >
+                    <RadioGroupItem value="organizer" id="organizer" />
+                    <div className="flex items-center space-x-3 flex-1">
                       <div className="p-2 bg-purple-500/20 rounded-lg">
                         <Shield className="h-4 w-4 text-purple-500" />
                       </div>
                       <div>
-                        <div className="font-medium text-foreground">Organizer</div>
-                        <div className="text-sm text-muted-foreground">Create and manage events</div>
+                        <div className="font-medium text-foreground">
+                          Organizer
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Create and manage events
+                        </div>
                       </div>
-                    </label>
-                  </div>
+                    </div>
+                  </label>
                 </RadioGroup>
               </div>
 
+              {/* Submit */}
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-purple-500 to-primary hover:from-purple-600 hover:to-primary/90 text-white glass border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-scale-in"
-                style={{ animationDelay: '0.8s' }}
+                style={{ animationDelay: "0.8s" }}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -262,7 +348,11 @@ export default function SignupPage() {
               </Button>
             </form>
 
-            <div className="text-center space-y-4 animate-fade-in" style={{ animationDelay: '0.9s' }}>
+            {/* Already have account */}
+            <div
+              className="text-center space-y-4 animate-fade-in"
+              style={{ animationDelay: "0.9s" }}
+            >
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-white/20" />
