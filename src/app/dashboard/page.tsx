@@ -19,9 +19,11 @@ import {
   QrCode,
   Download,
   X,
-  Sparkles
+  Sparkles,
+  Star,
+  TrendingUp
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Event {
   id: number;
@@ -129,7 +131,7 @@ export default function DashboardPage() {
         const data = await response.json();
         setQrCode(data);
         setQrDialogOpen(true);
-        toast.success('QR code generated successfully!');
+        toast.success('QR code generated successfully! 🎉');
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || 'Failed to generate QR code');
@@ -151,29 +153,29 @@ export default function DashboardPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('QR code downloaded!');
+    toast.success('QR code downloaded! 📱');
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'registered':
-        return <Badge variant="default" className="glass bg-green-500/20 text-green-700 border-green-500/30">Registered</Badge>;
+        return <Badge variant="default" className="glass-success animate-glow">✅ Registered</Badge>;
       case 'cancelled':
-        return <Badge variant="destructive" className="glass bg-red-500/20 text-red-700 border-red-500/30">Cancelled</Badge>;
+        return <Badge variant="destructive" className="glass-error animate-glow">❌ Cancelled</Badge>;
       default:
-        return <Badge variant="secondary" className="glass bg-gray-500/20 text-gray-700 border-gray-500/30">{status}</Badge>;
+        return <Badge variant="secondary" className="glass animate-glow">{status}</Badge>;
     }
   };
 
   const getAttendanceStatus = (registration: Registration) => {
     const attendance = attendanceHistory.find(a => a.registrationId === registration.id);
     if (!attendance) {
-      return { status: 'not_marked', icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' };
+      return { status: 'not_marked', icon: AlertCircle, color: 'text-yellow-600', bg: 'glass-warning' };
     }
     if (attendance.isPresent) {
-      return { status: 'present', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-500/20', border: 'border-green-500/30' };
+      return { status: 'present', icon: CheckCircle, color: 'text-green-600', bg: 'glass-success' };
     }
-    return { status: 'absent', icon: XCircle, color: 'text-red-600', bg: 'bg-red-500/20', border: 'border-red-500/30' };
+    return { status: 'absent', icon: XCircle, color: 'text-red-600', bg: 'glass-error' };
   };
 
   const formatDate = (dateString: string) => {
@@ -203,8 +205,8 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass p-8 rounded-xl">
+      <div className="min-h-screen flex items-center justify-center bg-animated">
+        <div className="glass-strong p-8 rounded-2xl animate-scale-in">
           <div className="flex items-center space-x-3">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <span className="text-muted-foreground">Loading dashboard...</span>
@@ -216,9 +218,10 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="glass border-white/20 shadow-2xl max-w-md w-full mx-4">
+      <div className="min-h-screen flex items-center justify-center bg-animated">
+        <Card className="glass-strong shadow-2xl max-w-md w-full mx-4 rounded-2xl border-0">
           <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-glow" />
             <p className="text-muted-foreground">Please log in to view your dashboard.</p>
           </CardContent>
         </Card>
@@ -227,41 +230,52 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 p-4 sm:p-6 lg:p-8">
-      {/* Animated Background */}
+    <div className="min-h-screen bg-animated p-4 sm:p-6 lg:p-8">
+      {/* ✨ Enhanced Animated Background ✨ */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-vibrant-gradient rounded-full blur-3xl animate-spin-slow opacity-10" />
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Welcome Header */}
-        <div className="glass border-white/20 rounded-2xl p-6 animate-fade-in-up">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16 glass border-white/20">
-              <AvatarFallback className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-lg font-bold">
+        {/* 🎉 Enhanced Welcome Header 🎉 */}
+        <div className="glass-strong rounded-3xl p-8 animate-fade-in-up hover-lift">
+          <div className="flex items-center space-x-6">
+            <Avatar className="h-20 w-20 glass-primary animate-glow">
+              <AvatarFallback className="bg-gradient-to-r from-primary to-accent text-primary-foreground text-xl font-bold">
                 {getInitials(user.name)}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold text-foreground flex items-center space-x-3">
                 <span>Welcome back, {user.name}!</span>
-                <Sparkles className="w-6 h-6 text-primary animate-glow" />
+                <Sparkles className="w-8 h-8 text-primary animate-glow" />
               </h1>
-              <p className="text-muted-foreground">Manage your event registrations and attendance</p>
+              <p className="text-muted-foreground text-lg mt-2">Manage your event registrations and attendance with style</p>
+              <div className="flex items-center space-x-4 mt-4">
+                <Badge className="glass-primary animate-glow px-4 py-2">
+                  <Star className="w-4 h-4 mr-1" />
+                  Active User
+                </Badge>
+                <Badge className="glass-accent animate-glow px-4 py-2">
+                  <TrendingUp className="w-4 h-4 mr-1" />
+                  {registrations.length} Events
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Registered Events */}
+        {/* 📅 Enhanced Registered Events 📅 */}
         <div className="animate-fade-in-up delay-300">
-          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center space-x-2">
-            <Calendar className="w-6 h-6 text-primary" />
+          <h2 className="text-3xl font-bold text-rainbow animate-gradient mb-8 flex items-center space-x-3">
+            <Calendar className="w-8 h-8 text-primary animate-glow" />
             <span>My Registered Events</span>
           </h2>
 
           {loadingRegistrations ? (
-            <Card className="glass border-white/20 shadow-lg">
+            <Card className="glass-strong shadow-lg rounded-2xl border-0">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -270,12 +284,12 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : registrations.length === 0 ? (
-            <Card className="glass border-white/20 shadow-lg">
-              <CardContent className="pt-6 text-center">
-                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">You haven't registered for any events yet.</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  <a href="/events/discover" className="text-primary hover:underline">
+            <Card className="glass-strong shadow-lg rounded-2xl border-0">
+              <CardContent className="pt-8 text-center">
+                <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-6 opacity-50 animate-float" />
+                <p className="text-muted-foreground text-lg mb-2">You haven't registered for any events yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  <a href="/events/discover" className="text-primary hover:underline font-semibold animate-glow">
                     Discover events
                   </a>
                   {' '}to get started!
@@ -293,12 +307,12 @@ export default function DashboardPage() {
                 return (
                   <Card 
                     key={registration.id} 
-                    className="glass border-white/20 shadow-lg hover-glass animate-scale-in"
+                    className="glass-strong shadow-lg hover-lift animate-scale-in rounded-2xl border-0"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg font-semibold text-foreground line-clamp-2">
+                        <CardTitle className="text-xl font-bold text-gradient line-clamp-2">
                           {registration.event.title}
                         </CardTitle>
                         {getStatusBadge(registration.status)}
@@ -308,20 +322,20 @@ export default function DashboardPage() {
                       </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDate(registration.event.eventDate)}</span>
+                    <CardContent className="space-y-5">
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-center space-x-3 text-muted-foreground">
+                          <Calendar className="w-5 h-5 text-primary" />
+                          <span className="font-medium">{formatDate(registration.event.eventDate)}</span>
                         </div>
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatTime(registration.event.eventDate)}</span>
+                        <div className="flex items-center space-x-3 text-muted-foreground">
+                          <Clock className="w-5 h-5 text-accent" />
+                          <span className="font-medium">{formatTime(registration.event.eventDate)}</span>
                         </div>
                         {registration.event.location && (
-                          <div className="flex items-center space-x-2 text-muted-foreground">
-                            <MapPin className="w-4 h-4" />
-                            <span className="line-clamp-1">{registration.event.location}</span>
+                          <div className="flex items-center space-x-3 text-muted-foreground">
+                            <MapPin className="w-5 h-5 text-yellow-500" />
+                            <span className="line-clamp-1 font-medium">{registration.event.location}</span>
                           </div>
                         )}
                       </div>
@@ -329,7 +343,7 @@ export default function DashboardPage() {
                       <Separator className="bg-white/20" />
 
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                        <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${attendanceStatus.bg}`}>
                           <AttendanceIcon className={`w-4 h-4 ${attendanceStatus.color}`} />
                           <span className="text-sm font-medium capitalize">
                             {attendanceStatus.status.replace('_', ' ')}
@@ -339,16 +353,15 @@ export default function DashboardPage() {
                         {registration.status === 'registered' && (
                           <Button 
                             size="sm" 
-                            variant="outline"
                             onClick={() => generateQRCode(registration.id)}
                             disabled={loadingQR}
-                            className="glass border-white/20 hover:bg-white/10 text-primary"
+                            className="glass-primary hover-glow animate-glow px-4 py-2"
                           >
                             {loadingQR ? (
                               <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                             ) : (
                               <>
-                                <QrCode className="w-4 h-4 mr-1" />
+                                <QrCode className="w-4 h-4 mr-2" />
                                 QR Code
                               </>
                             )}
@@ -363,15 +376,15 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Attendance History */}
+        {/* 📊 Enhanced Attendance History 📊 */}
         <div className="animate-fade-in-up delay-500">
-          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center space-x-2">
-            <Users className="w-6 h-6 text-primary" />
+          <h2 className="text-3xl font-bold text-rainbow animate-gradient mb-8 flex items-center space-x-3">
+            <Users className="w-8 h-8 text-primary animate-glow" />
             <span>Attendance History</span>
           </h2>
 
           {loadingAttendance ? (
-            <Card className="glass border-white/20 shadow-lg">
+            <Card className="glass-strong shadow-lg rounded-2xl border-0">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -380,11 +393,11 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : attendanceHistory.length === 0 ? (
-            <Card className="glass border-white/20 shadow-lg">
-              <CardContent className="pt-6 text-center">
-                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">No attendance records yet.</p>
-                <p className="text-sm text-muted-foreground mt-1">
+            <Card className="glass-strong shadow-lg rounded-2xl border-0">
+              <CardContent className="pt-8 text-center">
+                <Users className="w-16 h-16 text-muted-foreground mx-auto mb-6 opacity-50 animate-float" />
+                <p className="text-muted-foreground text-lg mb-2">No attendance records yet.</p>
+                <p className="text-sm text-muted-foreground">
                   Your attendance will appear here after events.
                 </p>
               </CardContent>
@@ -394,42 +407,41 @@ export default function DashboardPage() {
               {attendanceHistory.map((record, index) => (
                 <Card 
                   key={record.id} 
-                  className="glass border-white/20 shadow-lg hover-glass animate-scale-in"
+                  className="glass-strong shadow-lg hover-lift animate-scale-in rounded-2xl border-0"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg font-semibold text-foreground line-clamp-2">
+                      <CardTitle className="text-xl font-bold text-gradient line-clamp-2">
                         {record.event.title}
                       </CardTitle>
                       <Badge 
-                        variant={record.isPresent ? "default" : "destructive"}
-                        className={`glass ${record.isPresent 
-                          ? 'bg-green-500/20 text-green-700 border-green-500/30' 
-                          : 'bg-red-500/20 text-red-700 border-red-500/30'
+                        className={`${record.isPresent 
+                          ? 'glass-success animate-glow' 
+                          : 'glass-error animate-glow'
                         }`}
                       >
-                        {record.isPresent ? 'Present' : 'Absent'}
+                        {record.isPresent ? '✅ Present' : '❌ Absent'}
                       </Badge>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-3">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center space-x-2 text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(record.event.eventDate)}</span>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center space-x-3 text-muted-foreground">
+                        <Calendar className="w-5 h-5 text-primary" />
+                        <span className="font-medium">{formatDate(record.event.eventDate)}</span>
                       </div>
                       {record.markedAt && (
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>Marked at {formatTime(record.markedAt)}</span>
+                        <div className="flex items-center space-x-3 text-muted-foreground">
+                          <Clock className="w-5 h-5 text-accent" />
+                          <span className="font-medium">Marked at {formatTime(record.markedAt)}</span>
                         </div>
                       )}
                       {record.event.location && (
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <MapPin className="w-4 h-4" />
-                          <span className="line-clamp-1">{record.event.location}</span>
+                        <div className="flex items-center space-x-3 text-muted-foreground">
+                          <MapPin className="w-5 h-5 text-yellow-500" />
+                          <span className="line-clamp-1 font-medium">{record.event.location}</span>
                         </div>
                       )}
                     </div>
@@ -439,7 +451,7 @@ export default function DashboardPage() {
                         <Separator className="bg-white/20" />
                         <div className="text-sm">
                           <span className="font-medium text-foreground">Notes:</span>
-                          <p className="text-muted-foreground mt-1">{record.notes}</p>
+                          <p className="text-muted-foreground mt-1 italic">"{record.notes}"</p>
                         </div>
                       </>
                     )}
@@ -451,45 +463,45 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* QR Code Dialog */}
+      {/* 🎨 Enhanced QR Code Dialog 🎨 */}
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="glass border-white/20 shadow-2xl max-w-md">
+        <DialogContent className="glass-strong shadow-2xl max-w-md rounded-2xl border-0">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground flex items-center space-x-2">
-              <QrCode className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-2xl font-bold text-gradient flex items-center space-x-3">
+              <QrCode className="w-6 h-6 text-primary animate-glow" />
               <span>Event QR Code</span>
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Show this QR code to the event organizer for attendance marking
+              Show this QR code to the event organizer for attendance marking 📱
             </DialogDescription>
           </DialogHeader>
           
           {qrCode && (
             <div className="space-y-6">
               <div className="text-center space-y-4">
-                <div className="glass border-white/20 rounded-lg p-4 bg-white inline-block">
+                <div className="glass-strong rounded-2xl p-6 bg-white inline-block animate-glow">
                   <img 
                     src={`data:image/png;base64,${qrCode.qrCode}`}
                     alt="QR Code"
-                    className="w-48 h-48 mx-auto"
+                    className="w-48 h-48 mx-auto rounded-lg"
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-foreground">{qrCode.eventTitle}</h3>
+                <div className="space-y-3">
+                  <h3 className="font-bold text-gradient text-xl">{qrCode.eventTitle}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Registered: {formatDate(qrCode.registrationDate)}
+                    📅 Registered: {formatDate(qrCode.registrationDate)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Expires: {formatDate(qrCode.expiresAt)} at {formatTime(qrCode.expiresAt)}
+                    ⏰ Expires: {formatDate(qrCode.expiresAt)} at {formatTime(qrCode.expiresAt)}
                   </p>
                 </div>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
                 <Button 
                   onClick={downloadQRCode}
-                  className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 glass border-white/20"
+                  className="flex-1 btn-glow hover-lift"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download QR Code
@@ -497,7 +509,7 @@ export default function DashboardPage() {
                 <Button 
                   variant="outline" 
                   onClick={() => setQrDialogOpen(false)}
-                  className="glass border-white/20 hover:bg-white/10"
+                  className="glass-strong hover-glass px-4"
                 >
                   <X className="w-4 h-4" />
                 </Button>
