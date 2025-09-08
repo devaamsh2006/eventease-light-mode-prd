@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Look up user in database by ID
-    const user = await db.select({
+    const userResult = await db.select({
       id: users.id,
       email: users.email,
       name: users.name,
@@ -47,15 +47,17 @@ export async function GET(request: NextRequest) {
     .where(eq(users.id, userId))
     .limit(1);
 
-    if (user.length === 0) {
+    if (userResult.length === 0) {
       return NextResponse.json({ 
         error: 'User not found',
         code: 'USER_NOT_FOUND' 
       }, { status: 404 });
     }
 
-    // Return user object without password
-    return NextResponse.json(user[0], { status: 200 });
+    // Return session object with user property (this is what auth client expects!)
+    return NextResponse.json({ 
+      user: userResult[0] 
+    }, { status: 200 });
 
   } catch (error) {
     console.error('GET session error:', error);
