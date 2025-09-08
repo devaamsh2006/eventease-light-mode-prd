@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { refetchSession } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +33,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -43,18 +46,21 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      if (data.token) {
-        localStorage.setItem('bearer_token', data.token);
-      }
-
       toast.success('Login successful! Welcome back.');
       
-      // Redirect based on user role
-      if (data.user?.role === 'organizer') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      // Refetch session to update auth state
+      refetchSession();
+      
+      // Small delay to ensure session is updated
+      setTimeout(() => {
+        // Redirect based on user role
+        if (data.user?.role === 'organizer') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      }, 100);
+      
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Invalid email or password. Please make sure you have already registered an account and try again.');

@@ -2,373 +2,501 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import { 
   Calendar, 
   MapPin, 
   Clock, 
   Users, 
-  CheckCircle2, 
+  CheckCircle, 
   XCircle, 
   AlertCircle,
-  Sparkles,
-  TrendingUp,
-  CalendarDays,
-  UserCheck
+  QrCode,
+  Download,
+  X,
+  Sparkles
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Event {
   id: number;
   title: string;
-  description: string;
-  date: string;
-  location: string;
-  maxAttendees: number;
-  currentAttendees: number;
+  description: string | null;
+  eventDate: string;
+  location: string | null;
+  maxCapacity: number | null;
   organizerId: number;
-  organizer?: {
-    name: string;
-  };
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Registration {
   id: number;
-  eventId: number;
   userId: number;
+  eventId: number;
   registrationDate: string;
-  status: 'registered' | 'cancelled';
+  status: string;
   event: Event;
-  attendance?: {
-    isPresent: boolean;
-  };
+}
+
+interface AttendanceRecord {
+  id: number;
+  registrationId: number;
+  isPresent: boolean;
+  markedAt: string | null;
+  markedBy: number | null;
+  notes: string | null;
+  event: Event;
+  registration: Registration;
+}
+
+interface QRCodeData {
+  qrCode: string;
+  registrationId: number;
+  eventId: number;
+  eventTitle: string;
+  registrationDate: string;
+  expiresAt: string;
 }
 
 export default function DashboardPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(true);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [qrCode, setQrCode] = useState<QRCodeData | null>(null);
+  const [loadingQR, setLoadingQR] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-
-    if (user && user.role === 'organizer') {
-      router.push('/admin');
-      return;
-    }
-
     if (user) {
       fetchRegistrations();
+      fetchAttendanceHistory();
     }
-  }, [user, authLoading, router]);
+  }, [user]);
 
   const fetchRegistrations = async () => {
     try {
-      setIsLoading(true);
-      const token = localStorage.getItem('bearer_token');
-      
       const response = await fetch('/api/registrations', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch registrations');
+      if (response.ok) {
+        const data = await response.json();
+        setRegistrations(data.registrations || []);
+      } else {
+        console.error('Failed to fetch registrations');
       }
-
-      const data = await response.json();
-      setRegistrations(data.registrations || []);
     } catch (error) {
       console.error('Error fetching registrations:', error);
-      toast.error('Failed to load your registrations');
     } finally {
-      setIsLoading(false);
+      setLoadingRegistrations(false);
     }
   };
 
-  const getEventStatus = (event: Event) => {
-    const eventDate = new Date(event.date);
-    const now = new Date();
-    
-    if (eventDate < now) {
-      return 'past';
-    } else if (eventDate.toDateString() === now.toDateString()) {
-      return 'today';
-    } else {
-      return 'upcoming';
-    }
-  };
-
-  const getStatusBadge = (registration: Registration) => {
-    const status = getEventStatus(registration.event);
-    const { attendance } = registration;
-    
-    if (status === 'past') {
-      if (attendance) {
-        return attendance.isPresent ? (
-          <Badge className="glass bg-green-500/20 text-green-600 border-green-500/30">
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            Attended
-          </Badge>
-        ) : (
-          <Badge className="glass bg-red-500/20 text-red-600 border-red-500/30">
-            <XCircle className="w-3 h-3 mr-1" />
-            Absent
-          </Badge>
-        );
+  const fetchAttendanceHistory = async () => {
+    try {
+      const response = await fetch('/api/users/attendance', {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceHistory(data.attendanceRecords || []);
       } else {
-        return (
-          <Badge className="glass bg-gray-500/20 text-gray-600 border-gray-500/30">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            No Record
-          </Badge>
-        );
+        console.error('Failed to fetch attendance history');
       }
-    } else if (status === 'today') {
-      return (
-        <Badge className="glass bg-orange-500/20 text-orange-600 border-orange-500/30 animate-glow">
-          <Clock className="w-3 h-3 mr-1" />
-          Today
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge className="glass bg-blue-500/20 text-blue-600 border-blue-500/30">
-          <Calendar className="w-3 h-3 mr-1" />
-          Upcoming
-        </Badge>
-      );
+    } catch (error) {
+      console.error('Error fetching attendance history:', error);
+    } finally {
+      setLoadingAttendance(false);
     }
   };
 
-  const upcomingEvents = registrations.filter(r => getEventStatus(r.event) === 'upcoming' || getEventStatus(r.event) === 'today');
-  const pastEvents = registrations.filter(r => getEventStatus(r.event) === 'past');
-  const attendedEvents = pastEvents.filter(r => r.attendance?.isPresent);
+  const generateQRCode = async (registrationId: number) => {
+    setLoadingQR(true);
+    try {
+      const response = await fetch(`/api/registrations/${registrationId}/qr`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setQrCode(data);
+        setQrDialogOpen(true);
+        toast.success('QR code generated successfully!');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to generate QR code');
+      }
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      toast.error('Error generating QR code');
+    } finally {
+      setLoadingQR(false);
+    }
+  };
 
-  if (authLoading || !user) {
+  const downloadQRCode = () => {
+    if (!qrCode) return;
+    
+    const link = document.createElement('a');
+    link.href = `data:image/png;base64,${qrCode.qrCode}`;
+    link.download = `qr-code-${qrCode.eventTitle.replace(/\s+/g, '-').toLowerCase()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('QR code downloaded!');
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'registered':
+        return <Badge variant="default" className="glass bg-green-500/20 text-green-700 border-green-500/30">Registered</Badge>;
+      case 'cancelled':
+        return <Badge variant="destructive" className="glass bg-red-500/20 text-red-700 border-red-500/30">Cancelled</Badge>;
+      default:
+        return <Badge variant="secondary" className="glass bg-gray-500/20 text-gray-700 border-gray-500/30">{status}</Badge>;
+    }
+  };
+
+  const getAttendanceStatus = (registration: Registration) => {
+    const attendance = attendanceHistory.find(a => a.registrationId === registration.id);
+    if (!attendance) {
+      return { status: 'not_marked', icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' };
+    }
+    if (attendance.isPresent) {
+      return { status: 'present', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-500/20', border: 'border-green-500/30' };
+    }
+    return { status: 'absent', icon: XCircle, color: 'text-red-600', bg: 'bg-red-500/20', border: 'border-red-500/30' };
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="glass p-8 rounded-xl">
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-muted-foreground">Loading dashboard...</span>
+          </div>
         </div>
       </div>
     );
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="glass border-white/20 shadow-2xl max-w-md w-full mx-4">
+          <CardContent className="pt-6 text-center">
+            <p className="text-muted-foreground">Please log in to view your dashboard.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 p-4 sm:p-6 lg:p-8">
       {/* Animated Background */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-teal-500/5" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        {/* Header */}
-        <div className="glass rounded-2xl p-8 border-white/20 shadow-2xl animate-fade-in-up">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-2xl" />
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <UserCheck className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gradient">Welcome back, {user.name}!</h1>
-                  <p className="text-muted-foreground">Your event dashboard</p>
-                </div>
-              </div>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Welcome Header */}
+        <div className="glass border-white/20 rounded-2xl p-6 animate-fade-in-up">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16 glass border-white/20">
+              <AvatarFallback className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-lg font-bold">
+                <AvatarInitials name={user.name} />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
+                <span>Welcome back, {user.name}!</span>
+                <Sparkles className="w-6 h-6 text-primary animate-glow" />
+              </h1>
+              <p className="text-muted-foreground">Manage your event registrations and attendance</p>
             </div>
-            <Link href="/events/discover">
-              <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 glass border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Discover Events
-              </Button>
-            </Link>
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <Card className="glass border-white/20 shadow-xl hover-glass">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent rounded-xl" />
-            <CardContent className="p-6 relative z-10">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-xl">
-                  <CalendarDays className="w-6 h-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{upcomingEvents.length}</p>
-                  <p className="text-sm text-muted-foreground">Upcoming Events</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Registered Events */}
+        <div className="animate-fade-in-up delay-300">
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center space-x-2">
+            <Calendar className="w-6 h-6 text-primary" />
+            <span>My Registered Events</span>
+          </h2>
 
-          <Card className="glass border-white/20 shadow-xl hover-glass">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent rounded-xl" />
-            <CardContent className="p-6 relative z-10">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-600/20 rounded-xl">
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{attendedEvents.length}</p>
-                  <p className="text-sm text-muted-foreground">Events Attended</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass border-white/20 shadow-xl hover-glass">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent rounded-xl" />
-            <CardContent className="p-6 relative z-10">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-r from-purple-500/20 to-purple-600/20 rounded-xl">
-                  <TrendingUp className="w-6 h-6 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
-                    {pastEvents.length > 0 ? Math.round((attendedEvents.length / pastEvents.length) * 100) : 0}%
-                  </p>
-                  <p className="text-sm text-muted-foreground">Attendance Rate</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Upcoming Events */}
-        <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-foreground">Upcoming Events</h2>
-          </div>
-
-          {isLoading ? (
-            <div className="grid gap-4">
-              {[...Array(3)].map((_, i) => (
-                <Card key={i} className="glass border-white/20">
-                  <CardContent className="p-6">
-                    <div className="space-y-3">
-                      <Skeleton className="h-5 w-3/4 glass" />
-                      <Skeleton className="h-4 w-1/2 glass" />
-                      <Skeleton className="h-4 w-full glass" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : upcomingEvents.length === 0 ? (
-            <Card className="glass border-white/20 shadow-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl" />
-              <CardContent className="p-12 text-center relative z-10">
-                <div className="space-y-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto">
-                    <Calendar className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">No upcoming events</h3>
-                    <p className="text-muted-foreground">Discover and register for exciting events!</p>
-                  </div>
-                  <Link href="/events/discover">
-                    <Button className="bg-gradient-to-r from-primary to-primary/80 glass border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Browse Events
-                    </Button>
-                  </Link>
+          {loadingRegistrations ? (
+            <Card className="glass border-white/20 shadow-lg">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-muted-foreground">Loading events...</span>
                 </div>
               </CardContent>
             </Card>
+          ) : registrations.length === 0 ? (
+            <Card className="glass border-white/20 shadow-lg">
+              <CardContent className="pt-6 text-center">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                <p className="text-muted-foreground">You haven't registered for any events yet.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <a href="/events/discover" className="text-primary hover:underline">
+                    Discover events
+                  </a>
+                  {' '}to get started!
+                </p>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="grid gap-4">
-              {upcomingEvents.map((registration, index) => (
-                <Card key={registration.id} className="glass border-white/20 shadow-xl hover-glass animate-slide-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl" />
-                  <CardContent className="p-6 relative z-10">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-semibold text-foreground">{registration.event.title}</h3>
-                          {getStatusBadge(registration)}
-                        </div>
-                        <p className="text-muted-foreground line-clamp-2">{registration.event.description}</p>
-                        <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>{new Date(registration.event.date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{new Date(registration.event.date).toLocaleTimeString()}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{registration.event.location}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Users className="w-4 h-4" />
-                            <span>{registration.event.currentAttendees}/{registration.event.maxAttendees}</span>
-                          </div>
-                        </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {registrations.map((registration, index) => {
+                const attendanceStatus = getAttendanceStatus(registration);
+                const AttendanceIcon = attendanceStatus.icon;
+                const eventDate = new Date(registration.event.eventDate);
+                const isUpcoming = eventDate > new Date();
+
+                return (
+                  <Card 
+                    key={registration.id} 
+                    className="glass border-white/20 shadow-lg hover-glass animate-scale-in"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-lg font-semibold text-foreground line-clamp-2">
+                          {registration.event.title}
+                        </CardTitle>
+                        {getStatusBadge(registration.status)}
                       </div>
+                      <CardDescription className="text-sm text-muted-foreground line-clamp-2">
+                        {registration.event.description || 'No description available'}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center space-x-2 text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(registration.event.eventDate)}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatTime(registration.event.eventDate)}</span>
+                        </div>
+                        {registration.event.location && (
+                          <div className="flex items-center space-x-2 text-muted-foreground">
+                            <MapPin className="w-4 h-4" />
+                            <span className="line-clamp-1">{registration.event.location}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator className="bg-white/20" />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <AttendanceIcon className={`w-4 h-4 ${attendanceStatus.color}`} />
+                          <span className="text-sm font-medium capitalize">
+                            {attendanceStatus.status.replace('_', ' ')}
+                          </span>
+                        </div>
+
+                        {registration.status === 'registered' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => generateQRCode(registration.id)}
+                            disabled={loadingQR}
+                            className="glass border-white/20 hover:bg-white/10 text-primary"
+                          >
+                            {loadingQR ? (
+                              <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <QrCode className="w-4 h-4 mr-1" />
+                                QR Code
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Attendance History */}
+        <div className="animate-fade-in-up delay-500">
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center space-x-2">
+            <Users className="w-6 h-6 text-primary" />
+            <span>Attendance History</span>
+          </h2>
+
+          {loadingAttendance ? (
+            <Card className="glass border-white/20 shadow-lg">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-muted-foreground">Loading attendance history...</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : attendanceHistory.length === 0 ? (
+            <Card className="glass border-white/20 shadow-lg">
+              <CardContent className="pt-6 text-center">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                <p className="text-muted-foreground">No attendance records yet.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your attendance will appear here after events.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {attendanceHistory.map((record, index) => (
+                <Card 
+                  key={record.id} 
+                  className="glass border-white/20 shadow-lg hover-glass animate-scale-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg font-semibold text-foreground line-clamp-2">
+                        {record.event.title}
+                      </CardTitle>
+                      <Badge 
+                        variant={record.isPresent ? "default" : "destructive"}
+                        className={`glass ${record.isPresent 
+                          ? 'bg-green-500/20 text-green-700 border-green-500/30' 
+                          : 'bg-red-500/20 text-red-700 border-red-500/30'
+                        }`}
+                      >
+                        {record.isPresent ? 'Present' : 'Absent'}
+                      </Badge>
                     </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center space-x-2 text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(record.event.eventDate)}</span>
+                      </div>
+                      {record.markedAt && (
+                        <div className="flex items-center space-x-2 text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>Marked at {formatTime(record.markedAt)}</span>
+                        </div>
+                      )}
+                      {record.event.location && (
+                        <div className="flex items-center space-x-2 text-muted-foreground">
+                          <MapPin className="w-4 h-4" />
+                          <span className="line-clamp-1">{record.event.location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {record.notes && (
+                      <>
+                        <Separator className="bg-white/20" />
+                        <div className="text-sm">
+                          <span className="font-medium text-foreground">Notes:</span>
+                          <p className="text-muted-foreground mt-1">{record.notes}</p>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
         </div>
-
-        {/* Past Events */}
-        {pastEvents.length > 0 && (
-          <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-foreground">Past Events</h2>
-            </div>
-
-            <div className="grid gap-4">
-              {pastEvents.slice(0, 5).map((registration, index) => (
-                <Card key={registration.id} className="glass border-white/20 shadow-xl hover-glass animate-slide-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl" />
-                  <CardContent className="p-6 relative z-10">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-semibold text-foreground">{registration.event.title}</h3>
-                          {getStatusBadge(registration)}
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>{new Date(registration.event.date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{registration.event.location}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="glass border-white/20 shadow-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center space-x-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              <span>Event QR Code</span>
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Show this QR code to the event organizer for attendance marking
+            </DialogDescription>
+          </DialogHeader>
+          
+          {qrCode && (
+            <div className="space-y-6">
+              <div className="text-center space-y-4">
+                <div className="glass border-white/20 rounded-lg p-4 bg-white inline-block">
+                  <img 
+                    src={`data:image/png;base64,${qrCode.qrCode}`}
+                    alt="QR Code"
+                    className="w-48 h-48 mx-auto"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-foreground">{qrCode.eventTitle}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Registered: {formatDate(qrCode.registrationDate)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Expires: {formatDate(qrCode.expiresAt)} at {formatTime(qrCode.expiresAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={downloadQRCode}
+                  className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 glass border-white/20"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download QR Code
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setQrDialogOpen(false)}
+                  className="glass border-white/20 hover:bg-white/10"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
