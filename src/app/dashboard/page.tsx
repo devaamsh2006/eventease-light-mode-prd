@@ -5,7 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { 
@@ -192,6 +192,15 @@ export default function DashboardPage() {
     });
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -231,7 +240,7 @@ export default function DashboardPage() {
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16 glass border-white/20">
               <AvatarFallback className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-lg font-bold">
-                <AvatarInitials name={user.name} />
+                {getInitials(user.name)}
               </AvatarFallback>
             </Avatar>
             <div>
